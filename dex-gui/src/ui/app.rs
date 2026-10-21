@@ -98,10 +98,10 @@ pub fn App() -> impl IntoView {
         <div class="bg-light min-vh-100 d-flex flex-column">
             <header class="bg-dark text-white py-4">
                 <div class="container">
-                    <h1 class="h3 mb-3">"FossRust Dex Parser Analyzer"</h1>
+                    <h1 class="h3 mb-3">"Dex Parser Analyzer"</h1>
                     <div class="row g-3 align-items-center">
                         <p>
-                            <a href="https://github.com/FossRust/dex-parser-analyzer">"FossRust/dex-parser-analyzer"</a>
+                            <a href="https://github.com/dhilipsiva/dex-parser-analyzer">"dhilipsiva/dex-parser-analyzer"</a>
                         </p>
                     </div>
                     <div class="row g-3 align-items-center">

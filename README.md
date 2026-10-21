@@ -1,8 +1,8 @@
 # dex-parser-analyzer
 
-High-performance DEX parser and static analysis toolkit in Rust, usable from any language, via CLI, or fully in-browser—no dex files ever leave your machine.
+High-performance DEX parser and static analysis toolkit in Rust: a library, a CLI, and a fully in-browser GUI in which no dex file ever leaves your machine.
 
-In-browser demo: https://fossrust.github.io/dex-parser-analyzer/
+In-browser demo: https://dhilipsiva.github.io/dex-parser-analyzer/
 
 ## Sample usage
 
