@@ -29,9 +29,10 @@ fn parse_all_single_dex_fixtures() -> Result<(), DexError> {
     for fixture in dex_fixtures() {
         let bytes =
             fs::read(fixture).unwrap_or_else(|err| panic!("failed to read {fixture}: {err}"));
-        if !is_dex(&bytes) {
-            continue;
-        }
+        assert!(
+            is_dex(&bytes),
+            "{fixture} is not a DEX file (bad magic); replace the fixture rather than skip it"
+        );
         let dex = parse_dex(&bytes)?;
         assert!(dex.class_defs().len() > 0, "{fixture} had no class_defs");
         assert!(!dex.map_items().is_empty(), "{fixture} had empty map");
@@ -43,9 +44,10 @@ fn parse_all_single_dex_fixtures() -> Result<(), DexError> {
 fn decode_methods_from_fixtures() -> Result<(), DexError> {
     for fixture in dex_fixtures() {
         let bytes = fs::read(fixture).unwrap();
-        if !is_dex(&bytes) {
-            continue;
-        }
+        assert!(
+            is_dex(&bytes),
+            "{fixture} is not a DEX file (bad magic); replace the fixture rather than skip it"
+        );
         let dex = parse_dex(&bytes)?;
         for (idx, _) in dex.class_defs().enumerate() {
             let class_idx = ClassIdx::new(idx as u32);
@@ -67,9 +69,10 @@ fn decode_methods_from_fixtures() -> Result<(), DexError> {
 fn fuzz_strings_and_types() -> Result<(), DexError> {
     for fixture in dex_fixtures() {
         let bytes = fs::read(fixture).unwrap();
-        if !is_dex(&bytes) {
-            continue;
-        }
+        assert!(
+            is_dex(&bytes),
+            "{fixture} is not a DEX file (bad magic); replace the fixture rather than skip it"
+        );
         let dex = parse_dex(&bytes)?;
         for idx in 0..dex.string_count() {
             dex.try_string(StringIdx::new(idx as u32))?;
@@ -85,9 +88,10 @@ fn fuzz_strings_and_types() -> Result<(), DexError> {
 fn verify_try_handlers_have_entries() -> Result<(), DexError> {
     for fixture in dex_fixtures() {
         let bytes = fs::read(fixture).unwrap();
-        if !is_dex(&bytes) {
-            continue;
-        }
+        assert!(
+            is_dex(&bytes),
+            "{fixture} is not a DEX file (bad magic); replace the fixture rather than skip it"
+        );
         let dex = parse_dex(&bytes)?;
         for idx in 0..dex.method_count() {
             let method_idx = MethodIdx::new(idx as u32);
