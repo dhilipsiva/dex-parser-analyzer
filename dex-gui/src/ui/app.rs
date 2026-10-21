@@ -2,10 +2,10 @@ use std::rc::Rc;
 
 use dex_analysis::{config::AnalysisConfig, engine::analyze_dex, model::AnalysisReport};
 use dex_core::{
-    dto::{dex_to_overview, DexOverviewDto},
+    dto::{DexOverviewDto, dex_to_overview},
     parse_dex,
 };
-use gloo_file::{futures::read_as_bytes, File as GlooFile};
+use gloo_file::{File as GlooFile, futures::read_as_bytes};
 use leptos::*;
 use web_sys::HtmlInputElement;
 

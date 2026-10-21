@@ -52,3 +52,9 @@ cargo run -p dex-cli -- path/to/classes.dex --max-findings 25
 - `dex-gui`: Leptos WASM GUI that lets you upload a `.dex` and explore metrics/findings.
 
 > Privacy note: the `dex-gui` web app runs completely inside your browser via Rust-to-WASM, so the uploaded `.dex` never leaves your machine. Prefer server-side automation? Compile the same logic to a WebAssembly module and host it behind [Extism](https://extism.org/) (or any WASM runtime) to call it from Rust or other languages.
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT) at your option. The DEX and APK test fixtures under `dex-core/tests/data/` derive from the Androguard test corpus and keep its Apache-2.0 terms; see [NOTICE](NOTICE).
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.

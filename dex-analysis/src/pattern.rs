@@ -12,7 +12,7 @@ use serde_json::json;
 
 use crate::{
     config::AnalysisConfig,
-    model::{describe_method, Finding, Location, Severity, VulnerabilityKind},
+    model::{Finding, Location, Severity, VulnerabilityKind, describe_method},
 };
 
 const SECRET_MIN_LENGTH: usize = 8;

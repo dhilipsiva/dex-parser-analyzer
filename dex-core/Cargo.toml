@@ -1,7 +1,13 @@
 [package]
 name = "dex-core"
-version = "0.1.0"
-edition = "2024"
+description = "Parser for Android DEX files: header, sections, classes, methods, bytecode, CFG, call graph and multi-dex APK input"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 bitflags = { version = "2.5", features = ["serde"] }

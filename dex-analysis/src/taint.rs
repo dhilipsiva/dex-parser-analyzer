@@ -10,7 +10,7 @@ use serde_json::json;
 use crate::{
     config::AnalysisConfig,
     data_flow::{self, AnalysisContext, ForwardAnalysis},
-    model::{describe_method, Finding, Location, MethodSummary, Severity, VulnerabilityKind},
+    model::{Finding, Location, MethodSummary, Severity, VulnerabilityKind, describe_method},
 };
 
 struct MethodPattern {

@@ -3,13 +3,13 @@
 use std::collections::{HashMap, VecDeque};
 
 use dex_core::{
+    DexResult,
     bytecode::Instruction,
     format::MethodIdx,
     graphs::{self, BasicBlock, Cfg},
     model::DexFile,
-    DexResult,
 };
-use petgraph::{graph::NodeIndex, visit::NodeIndexable, Direction};
+use petgraph::{Direction, graph::NodeIndex, visit::NodeIndexable};
 
 /// Shared context passed to [`ForwardAnalysis`] callbacks.
 #[derive(Clone, Copy)]

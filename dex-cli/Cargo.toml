@@ -1,10 +1,16 @@
 [package]
 name = "dex-cli"
-version = "0.1.0"
-edition = "2021"
+description = "Command-line DEX summaries and static-analysis findings"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
-dex-core = { path = "../dex-core" }
-dex-analysis = { path = "../dex-analysis" }
+dex-core = { path = "../dex-core", version = "0.1.0" }
+dex-analysis = { path = "../dex-analysis", version = "0.1.0" }

@@ -5,7 +5,7 @@ use serde_json::json;
 
 use crate::{
     config::AnalysisConfig,
-    model::{describe_method, Finding, Location, MethodSummary, Severity, VulnerabilityKind},
+    model::{Finding, Location, MethodSummary, Severity, VulnerabilityKind, describe_method},
 };
 
 /// Execute structural CFG/XREF driven analyses. The first iteration focuses on
