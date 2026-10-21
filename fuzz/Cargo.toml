@@ -1,0 +1,39 @@
+[package]
+name = "dex-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "cargo-fuzz targets for dex-core and dex-analysis"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+dex-core = { path = "../dex-core" }
+dex-analysis = { path = "../dex-analysis" }
+
+# Fuzzing needs a nightly toolchain, so this crate is its own workspace, outside the main one.
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "parse_dex"
+path = "fuzz_targets/parse_dex.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "decode_instructions"
+path = "fuzz_targets/decode_instructions.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "analyze_dex_bytes"
+path = "fuzz_targets/analyze_dex_bytes.rs"
+test = false
+doc = false
+bench = false

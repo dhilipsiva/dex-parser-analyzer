@@ -40,3 +40,9 @@ ci: lint clippy-wasm test doc deny
 # Package and verify-build every publishable crate without uploading (skips `publish = false`).
 release-dry-run:
     cargo publish --locked --dry-run --workspace
+
+# Fuzz one target for `seconds` (inside `nix develop .#fuzz`); seeds are the small test fixtures.
+fuzz target="parse_dex" seconds="60":
+    mkdir -p fuzz/corpus/{{target}}
+    find dex-core/tests/data -maxdepth 1 -type f -size -64k -exec cp {} fuzz/corpus/{{target}}/ \;
+    cd fuzz && cargo fuzz run {{target}} corpus/{{target}} -- -max_total_time={{seconds}} -max_len=65536

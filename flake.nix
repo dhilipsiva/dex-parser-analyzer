@@ -38,5 +38,14 @@
 
           RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
         };
+
+        # cargo-fuzz needs nightly (-Zsanitizer); pinned so a run is reproducible. Used by fuzz.yml.
+        devShells.fuzz = pkgs.mkShell {
+          packages = with pkgs; [
+            (rust-bin.nightly."2026-10-20".default.override { extensions = [ "rust-src" ]; })
+            cargo-fuzz
+            just
+          ];
+        };
       });
 }

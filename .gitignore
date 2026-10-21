@@ -22,3 +22,9 @@ target
 
 # trunk build output; the Pages workflow builds the GUI from source
 dex-gui/dist/
+
+# cargo-fuzz working directories (fuzz/Cargo.lock is committed)
+fuzz/target/
+fuzz/corpus/
+fuzz/artifacts/
+fuzz/coverage/

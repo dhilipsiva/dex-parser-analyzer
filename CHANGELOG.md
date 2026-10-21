@@ -17,6 +17,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `deny.toml`, with `cargo deny` in CI, and Dependabot updates for Cargo and GitHub Actions.
 - A rebuilt CI workflow: fmt, clippy (native and wasm32), tests, docs, cargo deny, MSRV and workflow lint, with SHA-pinned actions.
 - `just ci` as the local gate.
+- cargo-fuzz targets for the parser, bytecode decoding and the analyzer (`fuzz/`, `just fuzz`), with a pinned-nightly dev shell and a weekly fuzz workflow.
 - docs/architecture.md and docs/rules.md, per-crate READMEs, CONTRIBUTING.md and SECURITY.md.
 
 ### Removed
@@ -24,5 +25,6 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 - Three crashes on crafted input are now errors. An out-of-range `class_data_off` and an out-of-range `string_data_off` are rejected by `parse_dex` with `SectionOutOfBounds`. A literal whose 64-byte preview cut fell inside a multibyte character no longer panics the analyzer (thanks to @bilieebiliee1-design, whose PR #1 found it).
+- Crafted counts and nesting no longer exhaust memory or the stack: declared counts cap their allocations at the input length, encoded values nest at most 64 deep, a sleb128 is at most five bytes, and `data_off + data_size` saturates.
 - Every leb128 read in the parser starts at a bounds-checked offset, and a `method_idx` in class data that points past `method_ids` is an `InvalidIndex` error instead of a panic.
 - The GUI page no longer requests a nonexistent `dex-gui.js`.
