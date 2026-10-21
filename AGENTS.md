@@ -1,16 +1,34 @@
-# Repository Guidelines
+# Agent guide
 
-## Project Structure & Module Organization
-The root will host the Rust crate once `Cargo.toml` and `src/` are added; keep parsing logic in `src/parser/`, static analysis utilities in `src/analysis/`, and GUI adapters in `src/gui/`. Shared types belong in `src/model.rs` so both parser and analyzer stay decoupled. Research notes and design references live in `docs/research/00-03-*.md`; update these when architectural decisions change so new agents can onboard quickly. Place integration fixtures under `tests/` and keep any large binary samples in `assets/dex-samples/` to avoid cluttering version control.
+dex-parser-analyzer is a Cargo workspace of four crates (layout and module roles: `docs/architecture.md`):
 
-## Build, Test, and Development Commands
-Run `cargo build` for a debug build of every crate in the workspace, and `cargo build --release` when benchmarking parser throughput. Use `cargo run --bin dex-analyzer <dex-file>` to exercise the CLI analyzer locally. Format with `cargo fmt` and lint with `cargo clippy --all-targets --all-features`; both must pass before a PR. When touching the GUI layer, run `wasm-pack build gui` to ensure the WebAssembly bundle still compiles.
+- `dex-core/`: the DEX parser, bytecode decoder, graphs and DTOs. Tests are in `dex-core/tests/`, fixtures in `dex-core/tests/data/` (Androguard-derived, Apache-2.0; see NOTICE).
+- `dex-analysis/`: the pattern, structural and taint passes. Every rule id is in `docs/rules.md`, which must change in the same commit as any rule.
+- `dex-cli/`: the command-line front end.
+- `dex-gui/`: the Leptos 0.8 browser GUI (wasm32, built with trunk; `publish = false`).
 
-## Coding Style & Naming Conventions
-Stick to rustfmt defaults: 4-space indentation, 100-character lines, and module-level `//!` docs describing the subsystem. Types and traits use `PascalCase`, functions and modules use `snake_case`, and constants are `SCREAMING_SNAKE_CASE`. Organize modules so each file exposes a focused public API; re-export symbols via `pub use crate::parser::DexParser` patterns instead of deep imports. Prefer `anyhow::Result` for CLI-facing errors and strongly typed `thiserror` enums inside libraries.
+## Commands
 
-## Testing Guidelines
-Unit tests sit beside their modules inside `src/**/*_test.rs`, while integration and regression suites belong in `tests/`. Use the sample bytecode from `assets/dex-samples/` to create deterministic fixtures. Write property tests with `proptest` when validating bytecode invariants, and ensure new analyzer rules include both positive and negative cases. Always run `cargo test --all` plus any GUI-specific harnesses after modifying parsing logic; target ≥80% coverage for parser and analyzer crates.
+Work inside the dev shell, which pins the toolchain from `rust-toolchain.toml`:
 
-## Commit & Pull Request Guidelines
-Follow the short, imperative style already in history (`fix minor typo`, `add research docs`). Group related changes per commit, reference issue IDs when available, and keep bodies under 72 columns. PRs need a brief summary, test evidence (`cargo test --all` output, screenshots for GUI changes), updated docs when behavior shifts, and a checklist noting lint/format status. Tag reviewers familiar with both Rust backend and GUI surface when changes span layers.
+| Command | What it runs |
+|---|---|
+| `nix develop` | enter the dev shell (Rust 1.99.1, the wasm32 target, trunk, just, cargo-deny) |
+| `just ci` | the gate: `lint`, `clippy-wasm`, `test`, `doc` and `deny`; it must pass before a commit |
+| `just lint` | `cargo fmt --check` and clippy with `-D warnings` |
+| `just clippy-wasm` | clippy for `dex-gui` on `wasm32-unknown-unknown` |
+| `just test` | `cargo test --workspace` |
+| `just doc` | rustdoc with `-D warnings` |
+| `just deny` | `cargo deny check advisories bans licenses sources` (policy in `deny.toml`) |
+| `cargo run -p dex-cli -- <file.dex>` | run the CLI on a file |
+| `cd dex-gui && trunk serve` | run the GUI locally |
+
+CI (`.github/workflows/ci.yml`) runs the same checks.
+
+## Rules
+
+- Parsing code must return a `DexError`, never panic, on malformed input: the GUI parses untrusted uploads.
+- A new rule needs a positive and a negative fixture test, plus its row in `docs/rules.md`.
+- Keep `CHANGELOG.md`'s `[Unreleased]` section current with every user-visible change.
+- Never commit `dex-gui/dist/` or other build output; it is gitignored.
+- Keep commit subjects short and imperative, as the history already does.

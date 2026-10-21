@@ -1,5 +1,7 @@
 # Workspace Progress Tracker
 
+As of 2026-10-21. Releases and user-visible changes are tracked in CHANGELOG.md from now on; this file records the parser and analyzer work up to the first release.
+
 ## Completed Work
 - Established workspace with `dex-core` crate and flake-based dev environment.
 - Implemented DEX format structs, strong index newtypes, `DexError`, and driver+slicing parser that populates `DexFile` with lazy string resolution and method/class handles.
@@ -7,13 +9,13 @@
 - Exposed semantic helpers, DTOs, CFG/call-graph/xref builders, and regression tests driven by the `tests/data/Test.dex` fixture.
 - Parsed `map_list`, link data, annotations directories, and surfaced section slices + annotation metadata through `DexFile`.
 - Extended CFG builder to add nodes/edges for exception handlers, and `CodeItem` now exposes handler lookup metadata for try/catch blocks.
-- Added a “fixture sweep” test suite that parses/decode bytecode across the provided Androguard `.dex` corpus to catch regressions against real-world files.
+- Added a “fixture sweep” test suite that parses and decodes bytecode across the nine Androguard-derived `.dex` fixtures; since 2026-10-21 it fails on any fixture that is not a DEX file (two 404-page files that had been skipped silently were removed).
 - Introduced `multidex::MultiDex`, an aggregator that builds shared string/type/class/method indexes across several `DexFile`s, plus tests that prove cross-dex lookups work using bundled fixtures.
-- Added fuzz/property tests: leb128 round-trips, handler offset validation, comprehensive string/type iteration, and malformed fixture tests (bad magic, out-of-bounds sections, corrupt payloads) to harden the parser against invalid inputs.
+- Added deterministic hardening tests: leb128 round-trips, handler-offset validation, an iteration over every string and type (`fuzz_strings_and_types`, despite its name not a fuzzer), and two malformed-input tests (bad magic, an out-of-bounds section). There is no property-based or coverage-guided fuzzing yet, and some crafted inputs still panic; cargo-fuzz targets are the next hardening step.
 - Implemented ART/odex extensions: Format20bc instructions now record verification metadata, quickened opcodes (35mi/35ms/3rmi/3rms) capture inline/vtable indices, DTOs expose the new fields, and tests cover these cases.
 - Added multi-dex unpacking helpers based on the `zip` crate (`read_dex_buffers_from_apk`/`from_buffers`) and tests that unpack the bundled `multidex.apk` fixture.
 - Expanded Rustdoc coverage for map/annotation helpers, semantic utilities, graphs (CFG/call-graph/xrefs), DTOs, and section accessor APIs so downstream users have examples for every public entry point.
-- Reworked CFG construction to emit real basic blocks with fallthrough, branch, switch, and exception edges; call graphs now understand polymorphic invokes; xref modeling tracks string/field/type/proto/call-site/method-handle references with regression tests.
+- Reworked CFG construction to emit real basic blocks with fallthrough, branch, switch, and exception edges; the call graph adds one edge per resolved `invoke-*` target (direct edges only, without class-hierarchy resolution); xref modeling tracks string/field/type/proto/call-site/method-handle references with regression tests.
 - Multi-dex helpers now build shared class/method/string/type pools with multi-location lookups, canonical method descriptors (including prototypes), and tests covering duplicate descriptors across dex files.
 - Parsed optional map_list-driven sections (type lists, annotation set refs/items, annotation items, encoded arrays, call-site and method-handle tables) and surfaced them via `DexFile` so downstream analyzers can inspect data that isn’t referenced directly by class data. Added tests ensuring proto parameter offsets and static value arrays resolve through the new APIs.
 - Audited overall parser coverage so far: confirmed every mandatory table, bytecode payload, and multi-dex helper is implemented while documenting the remaining optional sections (debug info, hidden-API metadata, checksum/signature validation) that still need wire-up work.

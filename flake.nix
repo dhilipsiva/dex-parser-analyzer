@@ -25,6 +25,8 @@
           packages = with pkgs; [
             rustToolchain
             trunk
+            just
+            cargo-deny
             cargo-watch
             wasm-pack
             pkg-config

@@ -1,57 +1,66 @@
+Status: alpha, unreleased (every crate is 0.1.0). The parser and analyzer run on the bundled fixtures; v0.2.0 will publish the crates to crates.io as `dexpa-core`, `dexpa-analysis` and `dexpa-cli`.
+
 # dex-parser-analyzer
 
-High-performance DEX parser and static analysis toolkit in Rust: a library, a CLI, and a fully in-browser GUI in which no dex file ever leaves your machine.
+A DEX parser and static-analysis toolkit for Android bytecode, in Rust: a library, a CLI, and an in-browser GUI. The GUI runs the parser and analyzer as WebAssembly, so the file you analyze never leaves your machine.
 
 In-browser demo: https://dhilipsiva.github.io/dex-parser-analyzer/
 
-## Sample usage
+## Workspace
 
-### dex-core
+| Crate | What it is |
+|---|---|
+| [`dex-core`](dex-core/) | Zero-copy DEX parser: header and sections, classes, methods, Dalvik bytecode decoding, control-flow and call graphs, cross-references, serde DTOs, and multi-dex/APK input. |
+| [`dex-analysis`](dex-analysis/) | Static-analysis passes over a parsed file (pattern, structural and intraprocedural taint), producing serde-serializable findings. The rules are listed in [docs/rules.md](docs/rules.md). |
+| [`dex-cli`](dex-cli/) | A command-line summary of a DEX file plus its findings. |
+| `dex-gui` | The Leptos and WebAssembly GUI behind the demo (not published to crates.io). |
 
-```rust
-use dex_core::{parse_dex, DexError};
+How the crates fit together is described in [docs/architecture.md](docs/architecture.md).
 
-fn print_classes(bytes: &[u8]) -> Result<(), DexError> {
-    let dex = parse_dex(bytes)?;
-    println!("DEX version {}", dex.header().version);
-    for class in dex.classes() {
-        let descriptor = class.descriptor()?;
-        println!("class: {descriptor}");
-    }
-    Ok(())
-}
-```
+## Usage
 
-### dex-analysis
+### Library
 
 ```rust
 use dex_analysis::{config::AnalysisConfig, engine::analyze_dex};
 use dex_core::parse_dex;
 
-fn run_analysis(bytes: &[u8]) -> anyhow::Result<()> {
+fn run(bytes: &[u8]) -> anyhow::Result<()> {
     let dex = parse_dex(bytes)?;
+    println!("DEX version {}", dex.header().version);
     let report = analyze_dex(&dex, &AnalysisConfig::default());
     for finding in report.findings {
-        println!("{:?}: {}", finding.severity, finding.message);
+        println!("{:?} {}: {}", finding.severity, finding.id, finding.message);
     }
     Ok(())
 }
 ```
 
-### dex-cli
+### CLI
 
 ```bash
 cargo run -p dex-cli -- path/to/classes.dex --max-findings 25
 ```
 
-## Workspace Layout
+The CLI prints the header summary, the ten classes with the most methods, and the findings. Its options are documented in [dex-cli/README.md](dex-cli/README.md).
 
-- `dex-core`: zero-copy DEX parser plus modeling/helpers (strings, CFGs, graphs, DTOs).
-- `dex-analysis`: higher-level static analysis primitives that build on `dex-core`, starting with the reusable forward data-flow framework extracted from `dex-core/src/analysis`.
-- `dex-cli`: command-line interface that prints parser summaries plus analyzer findings.
-- `dex-gui`: Leptos WASM GUI that lets you upload a `.dex` and explore metrics/findings.
+### GUI
 
-> Privacy note: the `dex-gui` web app runs completely inside your browser via Rust-to-WASM, so the uploaded `.dex` never leaves your machine. Prefer server-side automation? Compile the same logic to a WebAssembly module and host it behind [Extism](https://extism.org/) (or any WASM runtime) to call it from Rust or other languages.
+```bash
+nix develop
+cd dex-gui && trunk serve
+```
+
+## Building and testing
+
+Development happens inside the flake's dev shell, which pins the toolchain in `rust-toolchain.toml` (Rust 1.99.1, with the wasm32 target, trunk, just and cargo-deny):
+
+```bash
+nix develop
+just ci        # fmt, clippy (native and wasm32), tests, docs, cargo deny
+```
+
+`just --list` shows the individual recipes. Without Nix, any rustup install picks up `rust-toolchain.toml`. The project's conventions are in [products/CONVENTIONS.md](https://github.com/dhilipsiva/products/blob/main/CONVENTIONS.md). Contributions: [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
