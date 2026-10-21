@@ -123,11 +123,11 @@ pub fn describe_method(dex: &DexFile<'_>, method: MethodIdx) -> MethodSummary {
 fn proto_signature(dex: &DexFile<'_>, proto_idx: ProtoIdx) -> Option<String> {
     let proto = dex.proto_id(proto_idx)?;
     let mut signature = String::from("(");
-    if proto.parameters_off != 0 {
-        if let Some(list) = dex.type_list(proto.parameters_off) {
-            for ty in &list.types {
-                signature.push_str(dex.type_descriptor(*ty)?);
-            }
+    if proto.parameters_off != 0
+        && let Some(list) = dex.type_list(proto.parameters_off)
+    {
+        for ty in &list.types {
+            signature.push_str(dex.type_descriptor(*ty)?);
         }
     }
     signature.push(')');

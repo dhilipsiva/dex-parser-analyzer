@@ -15,10 +15,8 @@
           overlays = [ (import rust-overlay) ];
         };
 
-        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
-          extensions = [ "rustfmt" "clippy" ];
-          targets = [ "wasm32-unknown-unknown" ];
-        };
+        # The toolchain is pinned once, in rust-toolchain.toml, which CI's rustup reads too.
+        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
       in
       {
         formatter = pkgs.nixpkgs-fmt;

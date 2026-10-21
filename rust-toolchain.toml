@@ -1,0 +1,7 @@
+# The one toolchain pin: rustup (CI) reads this file, and flake.nix builds its dev shell from it.
+# Moved forward deliberately, together with `rust-version` in Cargo.toml (CONVENTIONS.md, MSRV policy).
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

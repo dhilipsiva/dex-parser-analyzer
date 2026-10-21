@@ -20,10 +20,12 @@ fn run_with_fixture(name: &str, config: AnalysisConfig) -> AnalysisReport {
 
 #[test]
 fn pattern_checks_detect_hardcoded_secret() {
-    let mut config = AnalysisConfig::default();
-    config.enable_structural_checks = false;
-    config.enable_taint_checks = false;
-    config.max_findings = None;
+    let config = AnalysisConfig {
+        enable_structural_checks: false,
+        enable_taint_checks: false,
+        max_findings: None,
+        ..Default::default()
+    };
     let report = run_with_fixture("Annotation_classes.dex", config);
     assert!(
         report
@@ -36,10 +38,12 @@ fn pattern_checks_detect_hardcoded_secret() {
 
 #[test]
 fn pattern_checks_detect_insecure_http_literal() {
-    let mut config = AnalysisConfig::default();
-    config.enable_structural_checks = false;
-    config.enable_taint_checks = false;
-    config.max_findings = None;
+    let config = AnalysisConfig {
+        enable_structural_checks: false,
+        enable_taint_checks: false,
+        max_findings: None,
+        ..Default::default()
+    };
     let report = run_with_fixture("Annotation_classes.dex", config);
     assert!(
         report.findings.iter().any(|f| f.id == "M5_INSECURE_HTTP"),
@@ -49,11 +53,13 @@ fn pattern_checks_detect_insecure_http_literal() {
 
 #[test]
 fn weak_crypto_detection_reports_cipher_usage() {
-    let mut config = AnalysisConfig::default();
-    config.enable_pattern_checks = true;
-    config.enable_structural_checks = false;
-    config.enable_taint_checks = false;
-    config.max_findings = None;
+    let config = AnalysisConfig {
+        enable_pattern_checks: true,
+        enable_structural_checks: false,
+        enable_taint_checks: false,
+        max_findings: None,
+        ..Default::default()
+    };
     let report = run_with_fixture("Annotation_classes.dex", config);
     assert!(
         report
@@ -66,10 +72,12 @@ fn weak_crypto_detection_reports_cipher_usage() {
 
 #[test]
 fn analyze_bytes_roundtrips_via_json() {
-    let mut config = AnalysisConfig::default();
-    config.enable_structural_checks = false;
-    config.enable_taint_checks = false;
-    config.max_findings = Some(5);
+    let config = AnalysisConfig {
+        enable_structural_checks: false,
+        enable_taint_checks: false,
+        max_findings: Some(5),
+        ..Default::default()
+    };
     let bytes = load_fixture("AnalysisTest.dex");
     let report = analyze_dex_bytes(&bytes, &config).expect("analysis succeeded");
     let json = serde_json::to_string(&report).expect("serialize");

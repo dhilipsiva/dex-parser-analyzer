@@ -347,18 +347,18 @@ impl<'a> ForwardAnalysis for MethodTaintAnalysis<'a> {
             let name = inst.name;
             let registers = referenced_registers(inst);
             if is_move_object(name) {
-                if let (Some(&dst), Some(&src)) = (registers.get(0), registers.get(1)) {
+                if let (Some(&dst), Some(&src)) = (registers.first(), registers.get(1)) {
                     state.copy(dst, src);
                 }
             } else if is_move_result_object(name) {
-                if let Some(&dst) = registers.get(0) {
+                if let Some(&dst) = registers.first() {
                     handle_move_result(state, dst, &pending_source);
                 }
                 pending_source = None;
-            } else if is_const(name) {
-                if let Some(&dst) = registers.get(0) {
-                    state.clear(dst);
-                }
+            } else if is_const(name)
+                && let Some(&dst) = registers.first()
+            {
+                state.clear(dst);
             }
 
             if let Some(Reference::Method(target)) = inst.reference.as_ref() {

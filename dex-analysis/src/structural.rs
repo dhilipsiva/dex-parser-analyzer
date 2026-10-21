@@ -30,11 +30,7 @@ pub fn run_structural_checks(
         let mut calls_ssl_proceed = false;
         for inst in &instructions {
             literals.observe(inst);
-            if let Some(target) = inst
-                .reference
-                .as_ref()
-                .and_then(|r| method_reference_target(r))
-            {
+            if let Some(target) = inst.reference.as_ref().and_then(method_reference_target) {
                 let summary = describe_method(dex, target);
                 match (
                     summary.class.as_str(),
@@ -62,20 +58,20 @@ pub fn run_structural_checks(
                         "openFileOutput",
                         "(Ljava/lang/String;I)Ljava/io/FileOutputStream;",
                     ) => {
-                        if let Some(mode_reg) = inst.registers.get(2) {
-                            if literals.is_world_mode(*mode_reg) {
-                                findings.push(Finding {
-                                    id: "M9_INSECURE_FILE_MODE".into(),
-                                    kind: VulnerabilityKind::Custom("InsecureFileMode".into()),
-                                    severity: Severity::Medium,
-                                    location: Location::from_method(dex, method_idx, Some(inst.pc)),
-                                    message: "openFileOutput with MODE_WORLD_* flag detected"
-                                        .to_string(),
-                                    extra: json!({
-                                        "mode_literal": literals.literal(*mode_reg),
-                                    }),
-                                });
-                            }
+                        if let Some(mode_reg) = inst.registers.get(2)
+                            && literals.is_world_mode(*mode_reg)
+                        {
+                            findings.push(Finding {
+                                id: "M9_INSECURE_FILE_MODE".into(),
+                                kind: VulnerabilityKind::Custom("InsecureFileMode".into()),
+                                severity: Severity::Medium,
+                                location: Location::from_method(dex, method_idx, Some(inst.pc)),
+                                message: "openFileOutput with MODE_WORLD_* flag detected"
+                                    .to_string(),
+                                extra: json!({
+                                    "mode_literal": literals.literal(*mode_reg),
+                                }),
+                            });
                         }
                     }
                     ("Ljava/lang/Runtime;", "exec", _) => {
@@ -104,11 +100,10 @@ pub fn run_structural_checks(
             if let Some(target) = inst
                 .secondary_reference
                 .as_ref()
-                .and_then(|r| method_reference_target(r))
+                .and_then(method_reference_target)
+                && is_ssl_proceed_method(dex, target)
             {
-                if is_ssl_proceed_method(dex, target) {
-                    calls_ssl_proceed = true;
-                }
+                calls_ssl_proceed = true;
             }
         }
 
@@ -177,13 +172,13 @@ impl LiteralTracker {
     fn observe(&mut self, inst: &dex_core::bytecode::Instruction) {
         let name = inst.name;
         if name.starts_with("const") {
-            if let (Some(&dst), Some(value)) = (inst.registers.get(0), inst.literal) {
+            if let (Some(&dst), Some(value)) = (inst.registers.first(), inst.literal) {
                 self.values.insert(dst, value);
             }
             return;
         }
         if name.starts_with("move") {
-            if let (Some(&dst), Some(&src)) = (inst.registers.get(0), inst.registers.get(1)) {
+            if let (Some(&dst), Some(&src)) = (inst.registers.first(), inst.registers.get(1)) {
                 if let Some(value) = self.values.get(&src).copied() {
                     self.values.insert(dst, value);
                 } else {
@@ -192,10 +187,10 @@ impl LiteralTracker {
             }
             return;
         }
-        if name.starts_with("return") {
-            if let Some(&reg) = inst.registers.get(0) {
-                self.values.remove(&reg);
-            }
+        if name.starts_with("return")
+            && let Some(&reg) = inst.registers.first()
+        {
+            self.values.remove(&reg);
         }
     }
 
@@ -225,16 +220,13 @@ fn method_reference_target(reference: &Reference) -> Option<MethodIdx> {
 }
 
 fn is_ssl_proceed_method(dex: &DexFile<'_>, idx: MethodIdx) -> bool {
-    if let Some(method) = dex.method(idx) {
-        if let Some(class) = method.class() {
-            if let Ok(descriptor) = class.descriptor() {
-                if descriptor == "Landroid/webkit/SslErrorHandler;" {
-                    if let Ok(name) = method.name() {
-                        return name == "proceed";
-                    }
-                }
-            }
-        }
+    if let Some(method) = dex.method(idx)
+        && let Some(class) = method.class()
+        && let Ok(descriptor) = class.descriptor()
+        && descriptor == "Landroid/webkit/SslErrorHandler;"
+        && let Ok(name) = method.name()
+    {
+        return name == "proceed";
     }
     false
 }

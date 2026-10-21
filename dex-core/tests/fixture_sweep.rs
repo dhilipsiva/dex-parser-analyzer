@@ -34,7 +34,7 @@ fn parse_all_single_dex_fixtures() -> Result<(), DexError> {
         }
         let dex = parse_dex(&bytes)?;
         assert!(dex.class_defs().len() > 0, "{fixture} had no class_defs");
-        assert!(dex.map_items().len() > 0, "{fixture} had empty map");
+        assert!(!dex.map_items().is_empty(), "{fixture} had empty map");
     }
     Ok(())
 }
@@ -49,12 +49,12 @@ fn decode_methods_from_fixtures() -> Result<(), DexError> {
         let dex = parse_dex(&bytes)?;
         for (idx, _) in dex.class_defs().enumerate() {
             let class_idx = ClassIdx::new(idx as u32);
-            if let Some(class) = dex.class(class_idx) {
-                if let Some(methods) = class.methods() {
-                    for method in methods {
-                        if method.code_item().is_some() {
-                            let _decoded = method.instructions()?;
-                        }
+            if let Some(class) = dex.class(class_idx)
+                && let Some(methods) = class.methods()
+            {
+                for method in methods {
+                    if method.code_item().is_some() {
+                        let _decoded = method.instructions()?;
                     }
                 }
             }

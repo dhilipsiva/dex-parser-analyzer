@@ -105,10 +105,10 @@ fn build_cfg_from_parts(code_item: &CodeItem<'_>, instructions: &[Instruction]) 
             if let Some(fallthrough) = fallthrough_start(inst, total_units) {
                 block_starts.insert(fallthrough);
             }
-        } else if is_goto(inst.opcode) {
-            if let Some(target) = compute_branch_target(inst.pc, inst.offset, total_units) {
-                block_starts.insert(target);
-            }
+        } else if is_goto(inst.opcode)
+            && let Some(target) = compute_branch_target(inst.pc, inst.offset, total_units)
+        {
+            block_starts.insert(target);
         }
     }
 
@@ -118,10 +118,10 @@ fn build_cfg_from_parts(code_item: &CodeItem<'_>, instructions: &[Instruction]) 
                 block_starts.insert(typed.addr);
             }
         }
-        if let Some(addr) = handler.catch_all_addr {
-            if addr < total_units {
-                block_starts.insert(addr);
-            }
+        if let Some(addr) = handler.catch_all_addr
+            && addr < total_units
+        {
+            block_starts.insert(addr);
         }
     }
 
@@ -156,10 +156,9 @@ fn build_cfg_from_parts(code_item: &CodeItem<'_>, instructions: &[Instruction]) 
         };
         if is_conditional_branch(last_inst.opcode) {
             if let Some(target) = compute_branch_target(last_inst.pc, last_inst.offset, total_units)
+                && let Some(&idx) = start_to_index.get(&target)
             {
-                if let Some(&idx) = start_to_index.get(&target) {
-                    graph.add_edge(block.node, blocks[idx].node, ());
-                }
+                graph.add_edge(block.node, blocks[idx].node, ());
             }
             if let Some(next_node) = successor_node(block.end, &start_to_index, &blocks) {
                 graph.add_edge(block.node, next_node, ());
@@ -177,10 +176,9 @@ fn build_cfg_from_parts(code_item: &CodeItem<'_>, instructions: &[Instruction]) 
             }
         } else if is_goto(last_inst.opcode) {
             if let Some(target) = compute_branch_target(last_inst.pc, last_inst.offset, total_units)
+                && let Some(&idx) = start_to_index.get(&target)
             {
-                if let Some(&idx) = start_to_index.get(&target) {
-                    graph.add_edge(block.node, blocks[idx].node, ());
-                }
+                graph.add_edge(block.node, blocks[idx].node, ());
             }
         } else if is_return_like(last_inst.opcode) || is_throw(last_inst.opcode) {
             // terminal blocks have no edges.
@@ -203,10 +201,10 @@ fn build_cfg_from_parts(code_item: &CodeItem<'_>, instructions: &[Instruction]) 
                     handler_nodes.push(blocks[idx].node);
                 }
             }
-            if let Some(addr) = handler.catch_all_addr {
-                if let Some(&idx) = start_to_index.get(&addr) {
-                    handler_nodes.push(blocks[idx].node);
-                }
+            if let Some(addr) = handler.catch_all_addr
+                && let Some(&idx) = start_to_index.get(&addr)
+            {
+                handler_nodes.push(blocks[idx].node);
             }
             if handler_nodes.is_empty() {
                 continue;
@@ -236,11 +234,11 @@ fn is_real_instruction(inst: &Instruction) -> bool {
 }
 
 fn is_conditional_branch(opcode: u8) -> bool {
-    matches!(opcode, 0x32..=0x37 | 0x38..=0x3d)
+    matches!(opcode, 0x32..=0x3d)
 }
 
 fn is_goto(opcode: u8) -> bool {
-    matches!(opcode, 0x28 | 0x29 | 0x2a)
+    matches!(opcode, 0x28..=0x2a)
 }
 
 fn is_switch(opcode: u8) -> bool {
@@ -298,8 +296,7 @@ fn last_instruction_in_block<'a>(
     instructions
         .iter()
         .copied()
-        .filter(|inst| inst.pc >= block.start && inst.pc < block.end)
-        .last()
+        .rfind(|inst| inst.pc >= block.start && inst.pc < block.end)
 }
 
 fn successor_node(
@@ -358,10 +355,10 @@ pub fn build_call_graph(dex: &DexFile<'_>) -> DexResult<CallGraph> {
             Err(_) => continue,
         };
         for ins in instructions {
-            if is_invoke(ins.opcode) {
-                if let Some(target) = method_reference(&ins.reference, dex.method_count()) {
-                    graph.add_edge(*node, nodes[target], ());
-                }
+            if is_invoke(ins.opcode)
+                && let Some(target) = method_reference(&ins.reference, dex.method_count())
+            {
+                graph.add_edge(*node, nodes[target], ());
             }
         }
     }
@@ -396,10 +393,10 @@ pub fn build_xrefs(dex: &DexFile<'_>) -> DexResult<Xrefs> {
             Err(_) => continue,
         };
         for ins in &instructions {
-            if is_invoke(ins.opcode) {
-                if let Some(target) = method_reference(&ins.reference, dex.method_count()) {
-                    xrefs.method_calls.push((idx as u32, target as u32));
-                }
+            if is_invoke(ins.opcode)
+                && let Some(target) = method_reference(&ins.reference, dex.method_count())
+            {
+                xrefs.method_calls.push((idx as u32, target as u32));
             }
             if let Some(reference) = ins.reference.as_ref() {
                 record_reference(&mut xrefs, idx as u32, reference);

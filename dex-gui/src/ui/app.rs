@@ -22,19 +22,16 @@ pub fn App() -> impl IntoView {
     let (analysis_report, set_analysis_report) = create_signal(Option::<Rc<AnalysisReport>>::None);
 
     let on_file_change = {
-        let set_selected_file = set_selected_file;
-        let set_selected_file_name = set_selected_file_name;
-        let set_error = set_error;
         move |ev: leptos::ev::Event| {
             let input: HtmlInputElement = event_target(&ev);
-            if let Some(file_list) = input.files() {
-                if let Some(file) = file_list.item(0) {
-                    let gloo_file = GlooFile::from(file);
-                    set_selected_file.set(Some(gloo_file.clone()));
-                    set_selected_file_name.set(gloo_file.name());
-                    set_error.set(None);
-                    return;
-                }
+            if let Some(file_list) = input.files()
+                && let Some(file) = file_list.item(0)
+            {
+                let gloo_file = GlooFile::from(file);
+                set_selected_file.set(Some(gloo_file.clone()));
+                set_selected_file_name.set(gloo_file.name());
+                set_error.set(None);
+                return;
             }
             set_selected_file.set(None);
             set_selected_file_name.set(String::new());

@@ -79,13 +79,12 @@ fn find_branch_method(dex: &dex_core::DexFile<'_>) -> Option<dex_core::format::M
     for class in dex.classes() {
         if let Some(methods) = class.methods() {
             for method in methods {
-                if let Ok(instructions) = method.instructions() {
-                    if instructions
+                if let Ok(instructions) = method.instructions()
+                    && instructions
                         .iter()
                         .any(|ins| is_branch_like(ins.opcode, ins.switch.is_some()))
-                    {
-                        return Some(method.index());
-                    }
+                {
+                    return Some(method.index());
                 }
             }
         }

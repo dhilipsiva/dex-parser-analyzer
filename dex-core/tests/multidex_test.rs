@@ -38,9 +38,9 @@ fn find_class_and_string_across_dexes() {
 #[test]
 fn unpack_multidex_apk() {
     let buffers = read_dex_buffers_from_apk("tests/data/multidex.apk").expect("apk");
-    assert!(buffers.len() >= 1);
+    assert!(!buffers.is_empty());
     let multi = MultiDex::from_buffers(&buffers).expect("multidex");
-    assert!(multi.dexes().len() >= 1);
+    assert!(!multi.dexes().is_empty());
 }
 
 #[test]

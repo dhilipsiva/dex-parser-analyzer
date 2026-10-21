@@ -63,5 +63,5 @@ pub fn pretty_method(dex: &DexFile<'_>, idx: MethodIdx) -> DexResult<String> {
 /// This helper flattens direct + virtual method lists into a single iterator
 /// that is easy to feed into property tests or graph traversals.
 pub fn class_methods<'a>(class: &ClassHandle<'a>) -> impl Iterator<Item = MethodHandle<'a>> + 'a {
-    class.methods().into_iter().flatten().into_iter()
+    class.methods().into_iter().flatten()
 }

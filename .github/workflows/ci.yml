@@ -1,24 +1,132 @@
+# CI for dex-parser-analyzer, from products/templates/ci-rust.yml (CONVENTIONS.md). The toolchain is
+# pinned in rust-toolchain.toml, which rustup reads here and flake.nix reads for the dev shell.
 name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+  # release.yml calls this workflow as its gate, so the release gate is the CI gate by construction.
+  workflow_call:
+
+permissions:
+  contents: read
+
+# When release.yml calls this workflow, github.workflow names the caller, so a release's checks
+# neither cancel nor are cancelled by the ref's own CI.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
 
 jobs:
-  build:
+  check:
+    name: fmt, clippy, test, doc
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
-      - name: Cargo fmt
-        run: cargo fmt -- --check
-      - name: Cargo clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-      - name: Cargo test
-        run: cargo test --all
+          persist-credentials: false
+      - name: Install the pinned toolchain (rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustup show active-toolchain
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check Clippy warnings
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - name: Run tests
+        run: cargo test --locked --workspace
+      - name: Build docs
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --workspace --no-deps
+
+  msrv:
+    name: MSRV (rust-version)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read rust-version
+        id: msrv
+        run: |
+          msrv=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[].rust_version // empty' | sort -V | tail -1)
+          if [ -z "$msrv" ]; then
+            echo "::error::no rust-version is declared (CONVENTIONS.md, MSRV policy)"
+            exit 1
+          fi
+          echo "version=$msrv" >> "$GITHUB_OUTPUT"
+      - name: Install the MSRV toolchain
+        env:
+          MSRV: ${{ steps.msrv.outputs.version }}
+        run: rustup toolchain install "$MSRV" --profile minimal
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+      - name: Check on the MSRV
+        env:
+          MSRV: ${{ steps.msrv.outputs.version }}
+        run: cargo +"$MSRV" check --locked --workspace --all-targets
+
+  deny:
+    name: cargo deny
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Set `continue-on-error: true` here only while deny.toml still ignores advisories, and remove it
+    # when the ignore list is empty; it never comes back (CONVENTIONS.md, "Deny policy").
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check advisories, bans, licences and sources
+        uses: EmbarkStudios/cargo-deny-action@c3bbe7e4e3f7baeee1a3dd9aec0a3b2aded580fb # v2.1.1
+        with:
+          command: check
+          command-arguments: advisories bans licenses sources
+
+  workflows:
+    name: Workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install actionlint 1.7.12
+        run: |
+          cd "$RUNNER_TEMP"
+          curl --silent --show-error --location --fail --output actionlint.tar.gz \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  actionlint.tar.gz" | sha256sum --check
+          tar --extract --gzip --file actionlint.tar.gz actionlint
+      - name: Check the workflows
+        run: '"$RUNNER_TEMP/actionlint" -color'
+
+  wasm:
+    name: clippy (wasm32, dex-gui)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - name: Cache the Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
+      - name: Check Clippy warnings for the browser GUI
+        run: nix develop --extra-experimental-features 'nix-command flakes' --command cargo clippy --locked -p dex-gui --target wasm32-unknown-unknown -- -D warnings

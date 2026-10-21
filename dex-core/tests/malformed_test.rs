@@ -17,7 +17,10 @@ fn out_of_bounds_section_detected() {
     let string_off = len + 0x100;
     bytes[0x3C..0x40].copy_from_slice(&string_off.to_le_bytes());
     match parse_dex(&bytes) {
-        Err(DexError::SectionOutOfBounds { section, .. }) if section == "string_ids" => {}
+        Err(DexError::SectionOutOfBounds {
+            section: "string_ids",
+            ..
+        }) => {}
         Ok(_) => panic!("expected section bounds error"),
         Err(err) => panic!("unexpected error: {err:?}"),
     }

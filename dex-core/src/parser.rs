@@ -243,8 +243,8 @@ fn parse_string_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[StringId
     })?;
     let section = slice(bytes, header.string_ids_off, len, "string_ids")?;
     let mut out = Vec::with_capacity(count);
-    for chunk in section.chunks_exact(4) {
-        let off = u32::from_le_bytes(chunk.try_into().expect("chunk len"));
+    for chunk in section.as_chunks::<4>().0 {
+        let off = u32::from_le_bytes(*chunk);
         out.push(StringId {
             string_data_off: off,
         });
@@ -256,8 +256,8 @@ fn parse_type_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[TypeId]>> 
     let count = header.type_ids_size as usize;
     let section = slice(bytes, header.type_ids_off, count * 4, "type_ids")?;
     let mut out = Vec::with_capacity(count);
-    for chunk in section.chunks_exact(4) {
-        let idx = u32::from_le_bytes(chunk.try_into().expect("chunk len"));
+    for chunk in section.as_chunks::<4>().0 {
+        let idx = u32::from_le_bytes(*chunk);
         out.push(TypeId {
             descriptor_idx: StringIdx::new(idx),
         });
@@ -269,7 +269,7 @@ fn parse_proto_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[ProtoId]>
     let count = header.proto_ids_size as usize;
     let section = slice(bytes, header.proto_ids_off, count * 12, "proto_ids")?;
     let mut out = Vec::with_capacity(count);
-    for chunk in section.chunks_exact(12) {
+    for chunk in section.as_chunks::<12>().0 {
         let shorty_idx = u32::from_le_bytes(chunk[0..4].try_into().unwrap());
         let return_type_idx = u32::from_le_bytes(chunk[4..8].try_into().unwrap());
         let parameters_off = u32::from_le_bytes(chunk[8..12].try_into().unwrap());
@@ -286,7 +286,7 @@ fn parse_field_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[FieldId]>
     let count = header.field_ids_size as usize;
     let section = slice(bytes, header.field_ids_off, count * 8, "field_ids")?;
     let mut out = Vec::with_capacity(count);
-    for chunk in section.chunks_exact(8) {
+    for chunk in section.as_chunks::<8>().0 {
         let class_idx = u16::from_le_bytes(chunk[0..2].try_into().unwrap()) as u32;
         let type_idx = u16::from_le_bytes(chunk[2..4].try_into().unwrap()) as u32;
         let name_idx = u32::from_le_bytes(chunk[4..8].try_into().unwrap());
@@ -303,7 +303,7 @@ fn parse_method_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[MethodId
     let count = header.method_ids_size as usize;
     let section = slice(bytes, header.method_ids_off, count * 8, "method_ids")?;
     let mut out = Vec::with_capacity(count);
-    for chunk in section.chunks_exact(8) {
+    for chunk in section.as_chunks::<8>().0 {
         let class_idx = u16::from_le_bytes(chunk[0..2].try_into().unwrap()) as u32;
         let proto_idx = u16::from_le_bytes(chunk[2..4].try_into().unwrap()) as u32;
         let name_idx = u32::from_le_bytes(chunk[4..8].try_into().unwrap());
@@ -320,7 +320,7 @@ fn parse_class_defs(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[ClassDef
     let count = header.class_defs_size as usize;
     let section = slice(bytes, header.class_defs_off, count * 32, "class_defs")?;
     let mut out = Vec::with_capacity(count);
-    for chunk in section.chunks_exact(32) {
+    for chunk in section.as_chunks::<32>().0 {
         let class_idx = u32::from_le_bytes(chunk[0..4].try_into().unwrap());
         let access_flags = u32::from_le_bytes(chunk[4..8].try_into().unwrap());
         let super_class_idx = u32::from_le_bytes(chunk[8..12].try_into().unwrap());
@@ -779,7 +779,7 @@ fn parse_type_lists(bytes: &[u8], item: &MapItem) -> DexResult<Vec<(u32, TypeLis
             let ty = read_u16_ctx(bytes, &mut cursor, "type_item")?;
             types.push(TypeIdx::new(ty as u32));
         }
-        if size % 2 != 0 {
+        if !size.is_multiple_of(2) {
             let end = cursor.checked_add(2).ok_or(DexError::SectionOutOfBounds {
                 section: "type_list",
                 offset: cursor,

@@ -212,9 +212,9 @@ fn instruction_window(
     instructions: &[Instruction],
     pc_index: &HashMap<u32, usize>,
 ) -> BlockWindow {
-    let start = match pc_index.get(&block.start_pc) {
-        Some(idx) => *idx,
-        None => return None,
+    let start = {
+        let idx = pc_index.get(&block.start_pc)?;
+        *idx
     };
     let mut end = start;
     while end < instructions.len() && instructions[end].pc < block.end_pc {

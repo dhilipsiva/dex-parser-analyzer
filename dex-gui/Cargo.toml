@@ -3,6 +3,7 @@ name = "dex-gui"
 description = "In-browser DEX analyzer (Leptos and WebAssembly); the uploaded file never leaves the machine"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true

@@ -53,7 +53,7 @@ static SECRET_KEYWORDS: Lazy<AhoCorasick> = Lazy::new(|| {
     .expect("aho-corasick build")
 });
 
-static WEAK_CRYPTO_KEYWORDS: &[(&str, &'static str)] = &[
+static WEAK_CRYPTO_KEYWORDS: &[(&str, &str)] = &[
     ("md5", "MD5"),
     ("sha1", "SHA1"),
     ("sha-1", "SHA1"),

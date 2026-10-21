@@ -16,10 +16,12 @@ pub fn analyze_dex<'a>(dex: &DexFile<'a>, config: &AnalysisConfig) -> AnalysisRe
     #[cfg(not(target_arch = "wasm32"))]
     let start = Instant::now();
     let mut findings = Vec::new();
-    let mut stats = AnalysisStats::default();
-    stats.method_count = dex.method_count() as u32;
-    stats.string_count = dex.string_count() as u32;
-    stats.instruction_count = count_instructions(dex);
+    let mut stats = AnalysisStats {
+        method_count: dex.method_count() as u32,
+        string_count: dex.string_count() as u32,
+        instruction_count: count_instructions(dex),
+        ..Default::default()
+    };
 
     if config.enable_pattern_checks {
         pattern::run_pattern_checks(dex, config, &mut findings, &mut stats);
@@ -31,10 +33,10 @@ pub fn analyze_dex<'a>(dex: &DexFile<'a>, config: &AnalysisConfig) -> AnalysisRe
         taint::run_taint_checks(dex, config, &mut findings, &mut stats);
     }
 
-    if let Some(max) = config.max_findings {
-        if findings.len() > max {
-            findings.truncate(max);
-        }
+    if let Some(max) = config.max_findings
+        && findings.len() > max
+    {
+        findings.truncate(max);
     }
 
     #[cfg(not(target_arch = "wasm32"))]

@@ -110,7 +110,7 @@ impl<'a> DexFile<'a> {
 
     /// Returns the parsed `map_list` entries.
     ///
-    /// Each [`MapItem`](crate::format::MapItem) describes a contiguous region of
+    /// Each [`MapItem`] describes a contiguous region of
     /// the file and is often used to discover optional tables such as call sites
     /// or hidden API metadata. Use this alongside [`section_bytes`](Self::section_bytes)
     /// to read raw sections that do not yet have high-level helpers.
@@ -139,7 +139,7 @@ impl<'a> DexFile<'a> {
 
     /// Returns the annotations directory for the given class.
     ///
-    /// The resulting [`AnnotationsDirectoryItem`](crate::format::AnnotationsDirectoryItem)
+    /// The resulting [`AnnotationsDirectoryItem`]
     /// contains offsets into the annotations section. Use those offsets with
     /// [`section_bytes`](Self::section_bytes) to fetch the encoded values when
     /// you want to interpret annotations yourself.
@@ -595,7 +595,7 @@ fn compute_shorty(proto: &str) -> Option<String> {
             '[' => continue,
             'L' => {
                 shorty.push('L');
-                while let Some(next) = chars.next() {
+                for next in chars.by_ref() {
                     if next == ';' {
                         break;
                     }

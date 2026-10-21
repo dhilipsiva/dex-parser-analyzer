@@ -234,11 +234,11 @@ fn method_descriptor(dex: &DexFile<'_>, idx: MethodIdx) -> Option<String> {
     let name = method.name().ok()?.to_string();
     let proto = method.prototype().ok()?;
     let mut params = String::from("(");
-    if proto.parameters_off != 0 {
-        if let Some(list) = dex.type_list(proto.parameters_off) {
-            for ty in &list.types {
-                params.push_str(dex.type_descriptor(*ty)?);
-            }
+    if proto.parameters_off != 0
+        && let Some(list) = dex.type_list(proto.parameters_off)
+    {
+        for ty in &list.types {
+            params.push_str(dex.type_descriptor(*ty)?);
         }
     }
     params.push(')');

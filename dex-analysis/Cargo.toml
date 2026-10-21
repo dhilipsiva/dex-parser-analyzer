@@ -3,6 +3,7 @@ name = "dex-analysis"
 description = "Static analysis passes over DEX files (pattern, structural and intraprocedural taint) with serde-serializable findings"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
