@@ -1,3 +1,9 @@
+# Build the GUI with the flake and publish it to GitHub Pages. `nix build .#dex-gui` takes trunk,
+# wasm-bindgen and the Rust toolchain from flake.lock and rust-toolchain.toml, so every version is
+# pinned, and the Nix store cache replaces building trunk from source on each run. The bundle is the
+# one a local `nix build .#dex-gui` produces: self-hosted CSS, relative URLs, and a
+# Content-Security-Policy (dex-gui/csp.py). Every action is pinned to a full commit SHA with its
+# release tag.
 name: Deploy dex-gui
 
 on:
@@ -5,54 +11,66 @@ on:
   # release.yml redeploys the tagged GUI after a release.
   workflow_call:
   push:
-    branches:
-      - main
+    branches: [main]
+    # Everything the bundle is built from: the GUI, the crates it links, the lockfiles and the
+    # toolchain pins.
     paths:
+      - "dex-core/**"
+      - "dex-analysis/**"
       - "dex-gui/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "flake.nix"
+      - "flake.lock"
       - ".github/workflows/deploy-dex-gui.yml"
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# One deployment at a time; a newer run queues instead of cancelling one that is mid-deploy.
 concurrency:
-  group: "pages"
-  cancel-in-progress: true
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   build:
+    name: Build the bundle
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Install toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          targets: wasm32-unknown-unknown
-
-      - name: Install trunk
-        run: cargo install trunk --locked
-
-      - name: Build dex-gui
-        working-directory: dex-gui
-        env:
-          PUBLIC_URL: /${{ github.event.repository.name }}/
-        run: trunk build --release --public-url "${PUBLIC_URL}"
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+          persist-credentials: false
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - name: Cache the Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
+      - name: Build with the flake
+        run: |
+          set -euo pipefail
+          nix build --extra-experimental-features 'nix-command flakes' .#dex-gui
+          cp -rL result site
+          chmod -R u+w site
+          ls -la site
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: dex-gui/dist
+          path: site
 
   deploy:
+    name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

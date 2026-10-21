@@ -1,28 +1,25 @@
 # dex-gui
 
-Client-side Leptos application that loads a `.dex` file, renders summaries, and displays analyzer findings.
+The in-browser front end of [dex-parser-analyzer](../README.md): a client-side Leptos app, compiled to WebAssembly, that parses a `.dex` file with `dexpa-core`, runs every `dexpa-analysis` pass and shows the overview and the findings. The file is read in the page and never uploaded. Live at https://dhilipsiva.github.io/dex-parser-analyzer/.
 
 ## Local development
 
 ```bash
-cd dex-gui
-rustup target add wasm32-unknown-unknown
-cargo install trunk --locked
-trunk serve
+nix develop
+cd dex-gui && trunk serve
 ```
 
-Open `http://localhost:8080` and upload a `.dex` file from your machine.
+Open `http://localhost:8080` and pick a `.dex` file. The dev shell provides trunk, the wasm32 target and everything else (trunk 0.21 from the flake's nixpkgs).
 
-## GitHub Pages deployment
+## The release bundle
 
-The repository includes `.github/workflows/deploy-dex-gui.yml`, which:
+`nix build .#dex-gui` builds what GitHub Pages serves: `index.html`, the JS glue, the wasm module and two stylesheets, all with relative URLs, so the bundle works under any path.
 
-1. Builds `dex-gui` with `trunk build --release --public-url /<repo>/`.
-2. Publishes the contents of `dex-gui/dist/` to the `gh-pages` branch via GitHub Pages.
+- Nothing loads from a third party. Bootstrap 5.3.3's CSS is vendored in `assets/` (MIT; byte-identical to the release file, SRI `sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH`), and `assets/app.css` holds the three styles Bootstrap lacks.
+- A release build carries a Content-Security-Policy `<meta>` tag: `default-src 'none'`, scripts from the page's origin plus trunk's inline loader by hash, `'wasm-unsafe-eval'` to compile the module, and styles from the origin only, so the view code uses classes, never `style` attributes. `csp.py`, a trunk `post_build` hook, writes it, because the loader's hash is known only after trunk has written it. `trunk serve` builds are left without a policy, so trunk's autoreload keeps working.
 
-To enable the workflow:
+`.github/workflows/deploy-dex-gui.yml` builds the bundle with the flake and deploys it on every push to `main` that touches the GUI, `dex-core`, `dex-analysis`, the lockfiles or the toolchain pins, and after each release.
 
-1. Navigate to **Settings → Pages** and select “GitHub Actions” as the source.
-2. Push to `main` (or trigger the workflow manually) after modifying `dex-gui/`.
+## Tests
 
-Once deployed, the app is available at `https://<username>.github.io/<repo>/`.
+`nix develop .#wasm-test -c just test-wasm` runs the browser smoke tests in `src/smoke.rs` with wasm-bindgen-test in headless Chromium: the app mounts, and the analyzer, compiled to wasm32, reports and renders the findings of the rule fixture. CI runs them in the `gui-smoke` job.

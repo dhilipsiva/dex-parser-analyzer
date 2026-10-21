@@ -46,82 +46,100 @@
           (builtins.fromTOML (builtins.readFile ./Cargo.lock)).package).version;
         wasmBindgenCli = pkgs.wasm-bindgen-cli_0_2_129;
       in
-      {
-        formatter = pkgs.nixpkgs-fmt;
+      lib.recursiveUpdate
+        {
+          formatter = pkgs.nixpkgs-fmt;
 
-        # `nix build .#dex-cli` (or `nix run . -- app.apk`): the dexpa binary.
-        packages.dex-cli = rustPlatform.buildRustPackage {
-          pname = "dexpa";
-          inherit version src;
-          cargoLock.lockFile = ./Cargo.lock;
-          cargoBuildFlags = [ "--package" "dexpa-cli" ];
-          cargoTestFlags = [ "--package" "dexpa-cli" ];
-          meta = meta // {
-            description = "Parse and statically analyse Android DEX files and APKs";
-            mainProgram = "dexpa";
+          # `nix build .#dex-cli` (or `nix run . -- app.apk`): the dexpa binary.
+          packages.dex-cli = rustPlatform.buildRustPackage {
+            pname = "dexpa";
+            inherit version src;
+            cargoLock.lockFile = ./Cargo.lock;
+            cargoBuildFlags = [ "--package" "dexpa-cli" ];
+            cargoTestFlags = [ "--package" "dexpa-cli" ];
+            meta = meta // {
+              description = "Parse and statically analyse Android DEX files and APKs";
+              mainProgram = "dexpa";
+            };
           };
-        };
-        packages.default = self.packages.${system}.dex-cli;
+          packages.default = self.packages.${system}.dex-cli;
 
-        # `nix build .#dex-gui`: the static browser bundle (index.html, JS glue and wasm), served
-        # from a relative public URL so it works under any path.
-        packages.dex-gui = assert lib.assertMsg (wasmBindgenCli.version == lockedWasmBindgen)
-          "Cargo.lock pins wasm-bindgen ${lockedWasmBindgen}, the flake uses wasm-bindgen-cli ${wasmBindgenCli.version}: update wasmBindgenCli in flake.nix";
-          rustPlatform.buildRustPackage {
-          pname = "dex-gui";
-          inherit version src;
-          cargoLock.lockFile = ./Cargo.lock;
-          nativeBuildInputs = [ pkgs.trunk wasmBindgenCli pkgs.binaryen ];
-          buildPhase = ''
-            runHook preBuild
-            export HOME=$TMPDIR
-            (cd dex-gui && trunk build --release --offline --public-url ./)
-            runHook postBuild
-          '';
-          installPhase = ''
-            runHook preInstall
-            cp -r dex-gui/dist $out
-            runHook postInstall
-          '';
-          doCheck = false;
-          meta = meta // { description = "dex-parser-analyzer in the browser (static bundle)"; };
-        };
+          # `nix build .#dex-gui`: the static browser bundle (index.html, JS glue and wasm), served
+          # from a relative public URL so it works under any path.
+          packages.dex-gui = assert lib.assertMsg (wasmBindgenCli.version == lockedWasmBindgen)
+            "Cargo.lock pins wasm-bindgen ${lockedWasmBindgen}, the flake uses wasm-bindgen-cli ${wasmBindgenCli.version}: update wasmBindgenCli in flake.nix";
+            rustPlatform.buildRustPackage {
+              pname = "dex-gui";
+              inherit version src;
+              cargoLock.lockFile = ./Cargo.lock;
+              # python3 runs dex-gui/csp.py, the post-build hook that adds the Content-Security-Policy.
+              nativeBuildInputs = [ pkgs.trunk wasmBindgenCli pkgs.binaryen pkgs.python3Minimal ];
+              buildPhase = ''
+                runHook preBuild
+                export HOME=$TMPDIR
+                (cd dex-gui && trunk build --release --offline --public-url ./)
+                runHook postBuild
+              '';
+              installPhase = ''
+                runHook preInstall
+                cp -r dex-gui/dist $out
+                runHook postInstall
+              '';
+              doCheck = false;
+              meta = meta // { description = "dex-parser-analyzer in the browser (static bundle)"; };
+            };
 
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            rustToolchain
-            trunk
-            just
-            cargo-deny
-            cargo-watch
-            wasm-pack
-            pkg-config
-            openssl
-            llvmPackages.clang
-            binaryen
-            git
-          ];
+          devShells.default = pkgs.mkShell {
+            packages = with pkgs; [
+              rustToolchain
+              trunk
+              just
+              cargo-deny
+              cargo-watch
+              wasm-pack
+              pkg-config
+              openssl
+              llvmPackages.clang
+              binaryen
+              python3Minimal
+              git
+            ];
 
-          RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
-        };
-
-        # Rebuilds the analyzer's rule fixtures from dex-analysis/tests/fixtures-src: javac, then D8
-        # (from the pinned R8 jar). `just fixtures` runs it.
-        devShells.fixtures = pkgs.mkShell {
-          packages = with pkgs; [ jdk21_headless just ];
-          R8_JAR = pkgs.fetchurl {
-            url = "https://dl.google.com/android/maven2/com/android/tools/r8/9.5.28/r8-9.5.28.jar";
-            hash = "sha256-OKn/quu9F9FRTj7L/1qFuYm7E8VRueIkx0CVFO6oT/U=";
+            RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
           };
-        };
 
-        # cargo-fuzz needs nightly (-Zsanitizer); pinned so a run is reproducible. Used by fuzz.yml.
-        devShells.fuzz = pkgs.mkShell {
-          packages = with pkgs; [
-            (rust-bin.nightly."2026-10-20".default.override { extensions = [ "rust-src" ]; })
-            cargo-fuzz
-            just
-          ];
-        };
-      });
+          # Rebuilds the analyzer's rule fixtures from dex-analysis/tests/fixtures-src: javac, then D8
+          # (from the pinned R8 jar). `just fixtures` runs it.
+          devShells.fixtures = pkgs.mkShell {
+            packages = with pkgs; [ jdk21_headless just ];
+            R8_JAR = pkgs.fetchurl {
+              url = "https://dl.google.com/android/maven2/com/android/tools/r8/9.5.28/r8-9.5.28.jar";
+              hash = "sha256-OKn/quu9F9FRTj7L/1qFuYm7E8VRueIkx0CVFO6oT/U=";
+            };
+          };
+
+          # cargo-fuzz needs nightly (-Zsanitizer); pinned so a run is reproducible. Used by fuzz.yml.
+          devShells.fuzz = pkgs.mkShell {
+            packages = with pkgs; [
+              (rust-bin.nightly."2026-10-20".default.override { extensions = [ "rust-src" ]; })
+              cargo-fuzz
+              just
+            ];
+          };
+        }
+        # Linux only: nixpkgs builds Chromium for Linux alone.
+        (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          # The GUI's browser smoke tests (`just test-wasm`): wasm-bindgen-test-runner drives headless
+          # Chromium through the chromedriver of the same nixpkgs, so the two versions always match.
+          devShells.wasm-test = pkgs.mkShell {
+            packages = [ rustToolchain wasmBindgenCli pkgs.chromedriver pkgs.just ];
+            CHROMEDRIVER = "${pkgs.chromedriver}/bin/chromedriver";
+            WASM_BINDGEN_TEST_WEBDRIVER_JSON = pkgs.writeText "webdriver.json" (builtins.toJSON {
+              "goog:chromeOptions" = {
+                binary = "${pkgs.chromium}/bin/chromium";
+                args = [ "--headless=new" "--no-sandbox" "--disable-gpu" "--disable-dev-shm-usage" ];
+              };
+            });
+          };
+        }));
 }

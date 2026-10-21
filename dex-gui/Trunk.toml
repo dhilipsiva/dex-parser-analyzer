@@ -1,3 +1,9 @@
 [build]
 target = "index.html"
 dist = "dist"
+
+# Release builds get a Content-Security-Policy that pins trunk's inline loader script by hash.
+[[hooks]]
+stage = "post_build"
+command = "python3"
+command_arguments = ["csp.py"]

@@ -130,3 +130,19 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
       - name: Check Clippy warnings for the browser GUI
         run: nix develop --extra-experimental-features 'nix-command flakes' --command cargo clippy --locked -p dex-gui --target wasm32-unknown-unknown -- -D warnings
+
+  gui-smoke:
+    name: GUI smoke (wasm-bindgen-test in headless Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - name: Cache the Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
+      - name: Mount the app and run the analyzer in the browser
+        run: nix develop .#wasm-test --extra-experimental-features 'nix-command flakes' --command just test-wasm

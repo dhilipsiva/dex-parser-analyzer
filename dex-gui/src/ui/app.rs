@@ -225,15 +225,15 @@ fn DocumentationSection() -> impl IntoView {
                     <div class="row g-3">
                         <div class="col-md-4">
                             <h3 class="h6">"dex-core"</h3>
-                            <pre class="bg-dark text-light p-3 rounded small" style="white-space: pre-wrap;"><code class="language-rust">{DEX_CORE_SNIPPET}</code></pre>
+                            <pre class="bg-dark text-light p-3 rounded small pre-wrap"><code class="language-rust">{DEX_CORE_SNIPPET}</code></pre>
                         </div>
                         <div class="col-md-4">
                             <h3 class="h6">"dex-analysis"</h3>
-                            <pre class="bg-dark text-light p-3 rounded small" style="white-space: pre-wrap;"><code class="language-rust">{DEX_ANALYSIS_SNIPPET}</code></pre>
+                            <pre class="bg-dark text-light p-3 rounded small pre-wrap"><code class="language-rust">{DEX_ANALYSIS_SNIPPET}</code></pre>
                         </div>
                         <div class="col-md-4">
                             <h3 class="h6">"dex-cli"</h3>
-                            <pre class="bg-dark text-light p-3 rounded small" style="white-space: pre-wrap;"><code class="language-bash">{DEX_CLI_SNIPPET}</code></pre>
+                            <pre class="bg-dark text-light p-3 rounded small pre-wrap"><code class="language-bash">{DEX_CLI_SNIPPET}</code></pre>
                         </div>
                     </div>
                 </div>

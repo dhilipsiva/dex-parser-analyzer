@@ -52,7 +52,7 @@ A single `main.rs`: clap arguments (a `.dex` or APK path, `--format`, `--max-fin
 
 ## dex-gui
 
-A Leptos 0.8 client-side app compiled to wasm32 with trunk. The user picks a file, and `gloo-file` reads it in the browser; `parse_dex` and `analyze_dex` run in the page, and the overview and findings render as tables. Nothing is uploaded anywhere. `.github/workflows/deploy-dex-gui.yml` builds `dex-gui/dist` and publishes it to GitHub Pages.
+A Leptos 0.8 client-side app compiled to wasm32 with trunk. The user picks a file, and `gloo-file` reads it in the browser; `parse_dex` and `analyze_dex` run in the page, and the overview and findings render as tables. Nothing is uploaded anywhere. `.github/workflows/deploy-dex-gui.yml` builds the bundle with `nix build .#dex-gui` (self-hosted CSS, a Content-Security-Policy; see [dex-gui/README.md](../dex-gui/README.md)) and publishes it to GitHub Pages.
 
 ## Toolchain and gates
 

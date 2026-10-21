@@ -16,6 +16,7 @@ Work inside the dev shell, which pins the toolchain from `rust-toolchain.toml`:
 | `nix develop` | enter the dev shell (Rust 1.99.1, the wasm32 target, trunk, just, cargo-deny) |
 | `just ci` | the gate: `lint`, `clippy-wasm`, `test`, `doc` and `deny`; it must pass before a commit |
 | `just lint` | `cargo fmt --check` and clippy with `-D warnings` |
+| `just test-wasm` | inside `nix develop .#wasm-test` (Chromium and chromedriver): the GUI's browser smoke tests, `dex-gui/src/smoke.rs` |
 | `just clippy-wasm` | clippy for `dex-gui` on `wasm32-unknown-unknown` |
 | `just test` | `cargo test --workspace` |
 | `just doc` | rustdoc with `-D warnings` |

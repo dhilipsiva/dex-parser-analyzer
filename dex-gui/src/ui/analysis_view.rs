@@ -130,7 +130,7 @@ pub fn AnalysisView(report: Arc<AnalysisReport>) -> impl IntoView {
                                     let message = finding.message.clone();
                                     let row_finding = finding.clone();
                                     view! {
-                                        <tr on:click=move |_| set_selected.set(Some(row_finding.clone())) style="cursor:pointer;">
+                                        <tr on:click=move |_| set_selected.set(Some(row_finding.clone())) class="clickable">
                                             <td>{severity}</td>
                                             <td class="text-nowrap">{rule}</td>
                                             <td class="font-monospace">{location}</td>
@@ -148,7 +148,7 @@ pub fn AnalysisView(report: Arc<AnalysisReport>) -> impl IntoView {
                 view! {
                     <section>
                         <h3 class="h6">"Finding Details"</h3>
-                        <pre class="bg-dark text-light p-3 rounded" style="white-space: pre-wrap;">{format!("{finding:#?}")}</pre>
+                        <pre class="bg-dark text-light p-3 rounded pre-wrap">{format!("{finding:#?}")}</pre>
                     </section>
                 }
             }) }

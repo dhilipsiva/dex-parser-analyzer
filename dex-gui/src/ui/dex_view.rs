@@ -56,8 +56,7 @@ pub fn DexView(dex: Arc<DexOverviewDto>) -> impl IntoView {
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h3 class="h5 mb-0">"Classes"</h3>
                     <input
-                        class="form-control"
-                        style="max-width: 280px;"
+                        class="form-control mw-280"
                         type="text"
                         placeholder="Filter by descriptor…"
                         prop:value=move || filter.get()

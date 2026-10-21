@@ -26,6 +26,12 @@ lint:
 clippy-wasm:
     cargo clippy --locked -p dex-gui --target wasm32-unknown-unknown -- -D warnings
 
+# The GUI's browser smoke tests (inside `nix develop .#wasm-test`): wasm-bindgen-test-runner drives
+# headless Chromium through chromedriver, both from the flake.
+test-wasm:
+    CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
+        cargo test --locked -p dex-gui --lib --target wasm32-unknown-unknown
+
 # Build the docs, with warnings as errors.
 doc:
     RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --no-deps

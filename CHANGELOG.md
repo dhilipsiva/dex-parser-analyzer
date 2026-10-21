@@ -5,6 +5,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Changed
+- The GUI loads nothing from a third party: Bootstrap's CSS is self-hosted, the unused highlight.js (it ran before the app rendered, so it never highlighted anything) is gone, and a release build carries a Content-Security-Policy that allows only the page's own scripts, styles and wasm. The Pages deploy builds the bundle with the flake (pinned trunk, cached) and runs on changes to any crate the GUI links, not only `dex-gui/`.
 - **Breaking:** `Finding` gains `cwe` (the rule's CWE number) and `remediation` (what to change), filled by the engine from the new `rules::RULES` catalogue; both deserialize as `null` when absent, so older JSON reports still load.
 - The report lists findings most severe first, with exact duplicates removed, before `max_findings` truncates it, so a cap keeps the most severe findings (previously it kept the first ones emitted). `Severity` is now `Ord`.
 - **Breaking:** the crates are renamed `dexpa-core`, `dexpa-analysis` and `dexpa-cli` (import them as `dexpa_core` and `dexpa_analysis`; `dex-cli` is taken on crates.io), and the CLI binary is `dexpa`. The directories keep their names.
@@ -17,6 +18,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - The fixture-sweep tests fail when a fixture is not a DEX file, instead of skipping it.
 
 ### Added
+- Browser smoke tests for the GUI (wasm-bindgen-test in headless Chromium, `nix develop .#wasm-test -c just test-wasm`, and the CI job `gui-smoke`): the app mounts, and the analyzer runs in wasm32 and its findings render.
 - A release workflow (`.github/workflows/release.yml`, runbook in RELEASING.md): a `v*` tag publishes `dexpa-core`, `dexpa-analysis` and `dexpa-cli` to crates.io, attaches `dexpa` binaries for Linux (x86_64, aarch64), macOS (aarch64) and Windows (x86_64) with SHA256SUMS and build provenance to the GitHub Release, and redeploys the GUI. A manual run is a rehearsal that creates nothing. `just release` rehearses locally.
 - Flake packages: `nix build .#dex-cli` (also the default, so `nix run . -- app.apk` works) and `nix build .#dex-gui`, the static GUI bundle.
 - A positive and a negative test for every rule id, against DEX fixtures compiled from documented Java sources in `dex-analysis/tests/fixtures-src` (`nix develop .#fixtures -c just fixtures`, with a pinned R8), and a test that docs/rules.md, the catalogue and the tests list the same ids, CWEs and remediation text.

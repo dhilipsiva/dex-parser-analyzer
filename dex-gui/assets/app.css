@@ -1,0 +1,13 @@
+/* The few styles Bootstrap has no utility for. Kept in a stylesheet, not in style attributes, so
+   the Content-Security-Policy can be style-src 'self'. */
+.clickable {
+  cursor: pointer;
+}
+
+.pre-wrap {
+  white-space: pre-wrap;
+}
+
+.mw-280 {
+  max-width: 280px;
+}

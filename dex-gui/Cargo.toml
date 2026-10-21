@@ -24,3 +24,6 @@ gloo-file = { version = "0.3", features = ["futures"] }
 
 dexpa-core = { path = "../dex-core", version = "0.1.0" }
 dexpa-analysis = { path = "../dex-analysis", version = "0.1.0" }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3"
