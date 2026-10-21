@@ -1,0 +1,15 @@
+# Weekly dependency updates (CONVENTIONS.md: "Deny policy" and "Action pinning"). Cargo minor and
+# patch bumps arrive as one grouped pull request; majors and action pins arrive one by one.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      cargo-minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

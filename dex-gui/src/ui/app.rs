@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use dex_analysis::{config::AnalysisConfig, engine::analyze_dex, model::AnalysisReport};
 use dex_core::{
@@ -6,20 +6,20 @@ use dex_core::{
     parse_dex,
 };
 use gloo_file::{File as GlooFile, futures::read_as_bytes};
-use leptos::*;
-use web_sys::HtmlInputElement;
+use leptos::web_sys::HtmlInputElement;
+use leptos::{prelude::*, task::spawn_local};
 
 use super::{AnalysisView, DexView};
 
 #[component]
 pub fn App() -> impl IntoView {
-    let (loading, set_loading) = create_signal(false);
-    let (error, set_error) = create_signal(Option::<String>::None);
-    let (selected_file, set_selected_file) = create_signal(Option::<GlooFile>::None);
-    let (selected_file_name, set_selected_file_name) = create_signal(String::new());
+    let (loading, set_loading) = signal(false);
+    let (error, set_error) = signal(Option::<String>::None);
+    let (selected_file, set_selected_file) = signal_local(Option::<GlooFile>::None);
+    let (selected_file_name, set_selected_file_name) = signal(String::new());
 
-    let (dex_overview, set_dex_overview) = create_signal(Option::<Rc<DexOverviewDto>>::None);
-    let (analysis_report, set_analysis_report) = create_signal(Option::<Rc<AnalysisReport>>::None);
+    let (dex_overview, set_dex_overview) = signal(Option::<Arc<DexOverviewDto>>::None);
+    let (analysis_report, set_analysis_report) = signal(Option::<Arc<AnalysisReport>>::None);
 
     let on_file_change = {
         move |ev: leptos::ev::Event| {
@@ -84,8 +84,8 @@ pub fn App() -> impl IntoView {
                 let cfg = AnalysisConfig::default();
                 let report = analyze_dex(&dex, &cfg);
 
-                set_dex_overview.set(Some(Rc::new(overview)));
-                set_analysis_report.set(Some(Rc::new(report)));
+                set_dex_overview.set(Some(Arc::new(overview)));
+                set_analysis_report.set(Some(Arc::new(report)));
                 set_loading.set(false);
             });
         }
@@ -116,9 +116,9 @@ pub fn App() -> impl IntoView {
                                 { move || {
                                     let name = selected_file_name.get();
                                     if name.is_empty() {
-                                        view! { <span>"No file selected"</span> }.into_view()
+                                        view! { <span>"No file selected"</span> }.into_any()
                                     } else {
-                                        view! { <span>{name}</span> }.into_view()
+                                        view! { <span>{name}</span> }.into_any()
                                     }
                                 }}
                             </div>
@@ -142,7 +142,7 @@ pub fn App() -> impl IntoView {
                     <div class="card-body">
                         { move || {
                             if loading.get() {
-                                return view! { <div class="text-secondary">"Loading…"</div> }.into_view();
+                                return view! { <div class="text-secondary">"Loading…"</div> }.into_any();
                             }
 
                             match (dex_overview.get(), analysis_report.get()) {
@@ -157,24 +157,24 @@ pub fn App() -> impl IntoView {
                                             <AnalysisView report=report.clone()/>
                                         </section>
                                     </div>
-                                }.into_view(),
+                                }.into_any(),
                                 (Some(dex), None) => view! {
                                     <section>
                                         <h2 class="h4 mb-3">"Dex Overview"</h2>
                                         <DexView dex=dex.clone()/>
                                     </section>
-                                }.into_view(),
+                                }.into_any(),
                                 (None, Some(report)) => view! {
                                     <section>
                                         <h2 class="h4 mb-3">"Analysis Report"</h2>
                                         <AnalysisView report=report.clone()/>
                                     </section>
-                                }.into_view(),
+                                }.into_any(),
                                 _ => view! {
                                     <div class="text-secondary">
                                         "Select a local .dex file above and click Load to begin."
                                     </div>
-                                }.into_view(),
+                                }.into_any(),
                             }
                         }}
                     </div>

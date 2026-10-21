@@ -7,7 +7,7 @@ pub use ui::App;
 
 #[cfg(target_arch = "wasm32")]
 use {
-    leptos::{mount_to_body, view},
+    leptos::{mount::mount_to_body, prelude::*},
     wasm_bindgen::prelude::*,
 };
 

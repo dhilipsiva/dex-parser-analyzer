@@ -1,0 +1,74 @@
+# deny.toml: the portfolio's canonical cargo-deny policy (CONVENTIONS.md, "Deny policy").
+# Source of truth: github.com/dhilipsiva/products/templates/deny.toml. Copy it unchanged, then
+# add only repository-specific entries in the marked places.
+#
+# Gate: `cargo deny check advisories bans licenses sources` in CI (cargo-deny 0.19 or later).
+#
+# The ignore convention, which every consumer follows:
+#   - An open RUSTSEC id may be ignored only with a comment naming the work item that closes
+#     it and an expiry no later than 90 days after the commit that adds the ignore:
+#         { id = "RUSTSEC-YYYY-NNNN", reason = "closed by <ITEM-ID>; expires YYYY-MM-DD" },
+#   - An ignore without both the item and the expiry is rejected in review. An expired
+#     ignore is removed or renewed with a new dated reason, never left in place.
+#   - The CI deny job may run non-blocking while ignores exist; it becomes blocking when the
+#     list is empty, and it never goes back.
+
+[graph]
+all-features = true
+
+[advisories]
+# Vulnerabilities and unsound advisories are always errors.
+yanked = "deny"
+# Unmaintained crates are errors for direct dependencies of workspace crates; transitive
+# ones are reported by `cargo deny check advisories` runs and handled case by case.
+unmaintained = "workspace"
+ignore = [
+    # Repository-specific, each with its closing item and an expiry (see the header):
+    # { id = "RUSTSEC-YYYY-NNNN", reason = "closed by P1-XXX-NN; expires YYYY-MM-DD" },
+]
+
+[licenses]
+# Every repository is MIT OR Apache-2.0 (CONVENTIONS.md, "Licence policy"); these are the
+# licences its dependencies may carry.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "MPL-2.0",
+    # A public-domain dedication (tiny-keccak and others).
+    "CC0-1.0",
+    # The Boost licence (xxhash-rust and others).
+    "BSL-1.0",
+]
+confidence-threshold = 0.8
+# The allow list is shared by every repository, so entries a given repository never uses are normal.
+unused-allowed-license = "allow"
+exceptions = [
+    # Repository-specific, one crate per entry, for example vendored prose or certificates:
+    # { allow = ["CC-BY-4.0"], crate = "<crate>" },
+    # { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
+]
+
+[licenses.private]
+# Unpublished workspace crates (`publish = false`) are not licence-checked.
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+highlight = "all"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = [
+    # Repository-specific git dependencies, each with a comment saying why it is not on crates.io.
+]

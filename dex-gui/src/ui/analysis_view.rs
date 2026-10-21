@@ -1,7 +1,7 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use dex_analysis::model::{AnalysisReport, Finding, Severity};
-use leptos::*;
+use leptos::prelude::*;
 
 const SEVERITY_ORDER: [Severity; 5] = [
     Severity::Critical,
@@ -12,10 +12,10 @@ const SEVERITY_ORDER: [Severity; 5] = [
 ];
 
 #[component]
-pub fn AnalysisView(report: Rc<AnalysisReport>) -> impl IntoView {
-    let (active_severities, set_active_severities) = create_signal(SEVERITY_ORDER.to_vec());
-    let (selected, set_selected) = create_signal(Option::<Finding>::None);
-    let findings_source = Rc::clone(&report);
+pub fn AnalysisView(report: Arc<AnalysisReport>) -> impl IntoView {
+    let (active_severities, set_active_severities) = signal(SEVERITY_ORDER.to_vec());
+    let (selected, set_selected) = signal(Option::<Finding>::None);
+    let findings_source = Arc::clone(&report);
 
     let filtered_findings = move || {
         let active = active_severities.get();
@@ -118,7 +118,7 @@ pub fn AnalysisView(report: Rc<AnalysisReport>) -> impl IntoView {
                                                 "No findings with the selected severities."
                                             </td>
                                         </tr>
-                                    }.into_view();
+                                    }.into_any();
                                 }
                                 rows.into_iter().map(|finding| {
                                     let severity = format!("{:?}", finding.severity);
@@ -137,7 +137,7 @@ pub fn AnalysisView(report: Rc<AnalysisReport>) -> impl IntoView {
                                             <td>{message}</td>
                                         </tr>
                                     }
-                                }).collect_view()
+                                }).collect_view().into_any()
                             }}
                         </tbody>
                     </table>

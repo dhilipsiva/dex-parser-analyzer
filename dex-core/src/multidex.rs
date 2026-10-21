@@ -251,7 +251,7 @@ fn read_dex_entries<R: Read + Seek>(archive: &mut ZipArchive<R>) -> DexResult<Ve
     let mut entries = Vec::new();
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
-        let name = file.name().to_owned();
+        let name = file.name()?.into_owned();
         if !name.ends_with(".dex") {
             continue;
         }

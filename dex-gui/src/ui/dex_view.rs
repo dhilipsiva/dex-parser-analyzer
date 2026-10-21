@@ -1,13 +1,13 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use dex_core::dto::DexOverviewDto;
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
-pub fn DexView(dex: Rc<DexOverviewDto>) -> impl IntoView {
-    let (filter, set_filter) = create_signal(String::new());
-    let overview = Rc::clone(&dex);
-    let filter_source = Rc::clone(&dex);
+pub fn DexView(dex: Arc<DexOverviewDto>) -> impl IntoView {
+    let (filter, set_filter) = signal(String::new());
+    let overview = Arc::clone(&dex);
+    let filter_source = Arc::clone(&dex);
 
     let filtered_classes = move || {
         let needle = filter.get().to_lowercase();
@@ -80,7 +80,7 @@ pub fn DexView(dex: Rc<DexOverviewDto>) -> impl IntoView {
                                         <tr>
                                             <td colspan="2" class="text-secondary">"No classes match the filter."</td>
                                         </tr>
-                                    }.into_view();
+                                    }.into_any();
                                 }
                                 rows.into_iter().map(|(descriptor, methods)| {
                                     view! {
@@ -89,7 +89,7 @@ pub fn DexView(dex: Rc<DexOverviewDto>) -> impl IntoView {
                                             <td>{methods}</td>
                                         </tr>
                                     }
-                                }).collect_view()
+                                }).collect_view().into_any()
                             }}
                         </tbody>
                     </table>
