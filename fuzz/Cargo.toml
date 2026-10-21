@@ -10,8 +10,8 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-dex-core = { path = "../dex-core" }
-dex-analysis = { path = "../dex-analysis" }
+dexpa-core = { path = "../dex-core" }
+dexpa-analysis = { path = "../dex-analysis" }
 
 # Fuzzing needs a nightly toolchain, so this crate is its own workspace, outside the main one.
 [workspace]

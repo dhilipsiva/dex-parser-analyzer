@@ -1,5 +1,5 @@
 [package]
-name = "dex-core"
+name = "dexpa-core"
 description = "Parser for Android DEX files: header, sections, classes, methods, bytecode, CFG, call graph and multi-dex APK input"
 version.workspace = true
 edition.workspace = true

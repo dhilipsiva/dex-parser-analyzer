@@ -1,6 +1,6 @@
 use std::fs;
 
-use dex_core::{
+use dexpa_core::{
     DexError,
     format::{ClassIdx, MethodIdx, StringIdx, TypeIdx},
     parse_dex,

@@ -1,4 +1,4 @@
-use dex_core::{graphs, parse_dex};
+use dexpa_core::{graphs, parse_dex};
 
 fn load_fixture(name: &str) -> Vec<u8> {
     std::fs::read(format!("tests/data/{name}")).expect("missing fixture")
@@ -75,7 +75,7 @@ fn xrefs_dto_clones_relationships() {
     assert_eq!(dto.method_types.len(), xrefs.method_types.len());
 }
 
-fn find_branch_method(dex: &dex_core::DexFile<'_>) -> Option<dex_core::format::MethodIdx> {
+fn find_branch_method(dex: &dexpa_core::DexFile<'_>) -> Option<dexpa_core::format::MethodIdx> {
     for class in dex.classes() {
         if let Some(methods) = class.methods() {
             for method in methods {

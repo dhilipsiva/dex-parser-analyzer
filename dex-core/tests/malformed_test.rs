@@ -1,4 +1,4 @@
-use dex_core::{DexError, format, parse_dex};
+use dexpa_core::{DexError, format, parse_dex};
 
 #[test]
 fn invalid_magic_rejected() {

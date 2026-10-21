@@ -1,7 +1,8 @@
 [package]
-name = "dex-cli"
+name = "dexpa-cli"
 description = "Command-line DEX summaries and static-analysis findings"
 version.workspace = true
+authors.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -13,5 +14,11 @@ categories.workspace = true
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
-dex-core = { path = "../dex-core", version = "0.1.0" }
-dex-analysis = { path = "../dex-analysis", version = "0.1.0" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dexpa-core = { path = "../dex-core", version = "0.1.0" }
+dexpa-analysis = { path = "../dex-analysis", version = "0.1.0" }
+
+[[bin]]
+name = "dexpa"
+path = "src/main.rs"

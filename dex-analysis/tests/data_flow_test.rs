@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
-use dex_analysis::data_flow::{self, AnalysisContext, ForwardAnalysis};
-use dex_core::{
+use dexpa_analysis::data_flow::{self, AnalysisContext, ForwardAnalysis};
+use dexpa_core::{
     bytecode::{Instruction, InstructionFormat},
     format::MethodIdx,
     graphs, parse_dex,
@@ -80,7 +80,7 @@ fn load_fixture(name: &str) -> Vec<u8> {
     std::fs::read(path).expect("missing fixture")
 }
 
-fn first_method_with_code(dex: &dex_core::DexFile<'_>) -> MethodIdx {
+fn first_method_with_code(dex: &dexpa_core::DexFile<'_>) -> MethodIdx {
     for idx in 0..dex.method_count() {
         let method = MethodIdx::new(idx as u32);
         if dex.code_item(method).is_some() {

@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, VecDeque};
 
-use dex_core::{
+use dexpa_core::{
     DexResult,
     bytecode::Instruction,
     format::MethodIdx,

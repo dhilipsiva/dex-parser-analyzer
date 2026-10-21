@@ -5,6 +5,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Changed
+- **Breaking:** the crates are renamed `dexpa-core`, `dexpa-analysis` and `dexpa-cli` (import them as `dexpa_core` and `dexpa_analysis`; `dex-cli` is taken on crates.io), and the CLI binary is `dexpa`. The directories keep their names.
 - **Breaking:** `DexFile::strings()` yields `DexResult<&str>` instead of `&str`, so a malformed entry is reported instead of panicking.
 - The project is dual-licensed MIT OR Apache-2.0 (previously MIT under the FossRust name). Every published crate ships both licence files, and NOTICE attributes the Androguard-derived test fixtures.
 - Every crate uses edition 2024 and the shared `[workspace.package]` metadata (description, repository, keywords, categories). `rust-version` is 1.99, and `rust-toolchain.toml` pins Rust 1.99.1.
@@ -14,6 +15,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - The fixture-sweep tests fail when a fixture is not a DEX file, instead of skipping it.
 
 ### Added
+- `dexpa` reads APKs and multi-dex zips as well as `.dex` files, prints `--format json` (a versioned schema, documented in dex-cli/README.md), and exits with 2 when a finding meets `--fail-on <severity>` (1 on unreadable or unparsable input). Integration tests drive the binary.
 - `deny.toml`, with `cargo deny` in CI, and Dependabot updates for Cargo and GitHub Actions.
 - A rebuilt CI workflow: fmt, clippy (native and wasm32), tests, docs, cargo deny, MSRV and workflow lint, with SHA-pinned actions.
 - `just ci` as the local gate.

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use dex_analysis::{config::AnalysisConfig, engine::analyze_dex, model::AnalysisReport};
-use dex_core::{
+use dexpa_analysis::{config::AnalysisConfig, engine::analyze_dex, model::AnalysisReport};
+use dexpa_core::{
     dto::{DexOverviewDto, dex_to_overview},
     parse_dex,
 };
@@ -185,7 +185,7 @@ pub fn App() -> impl IntoView {
     }
 }
 
-const DEX_CORE_SNIPPET: &str = r#"use dex_core::{parse_dex, DexError};
+const DEX_CORE_SNIPPET: &str = r#"use dexpa_core::{parse_dex, DexError};
 
 fn print_classes(bytes: &[u8]) -> Result<(), DexError> {
     let dex = parse_dex(bytes)?;
@@ -197,7 +197,7 @@ fn print_classes(bytes: &[u8]) -> Result<(), DexError> {
     Ok(())
 }"#;
 
-const DEX_ANALYSIS_SNIPPET: &str = r#"use dex_analysis::{config::AnalysisConfig, engine::analyze_dex};
+const DEX_ANALYSIS_SNIPPET: &str = r#"use dexpa_analysis::{config::AnalysisConfig, engine::analyze_dex};
 
 fn run_analysis(bytes: &[u8]) -> anyhow::Result<()> {
     let dex = parse_dex(bytes)?;

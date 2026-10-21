@@ -149,10 +149,10 @@ pub struct DtoReference {
 /// Convert a method handle into a DTO.
 ///
 /// ```
-/// # use dex_core::{dto, DexError, parse_dex};
+/// # use dexpa_core::{dto, DexError, parse_dex};
 /// # fn serialize_first_method(data: &[u8]) -> Result<(), DexError> {
 /// let dex = parse_dex(data)?;
-/// if let Some(method) = dex.method(dex_core::format::MethodIdx::new(0)) {
+/// if let Some(method) = dex.method(dexpa_core::format::MethodIdx::new(0)) {
 ///     let dto = dto::method_to_dto(&method)?;
 ///     println!("method {} -> {}", dto.idx, dto.name);
 /// }

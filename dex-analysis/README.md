@@ -1,20 +1,20 @@
-# dex-analysis
+# dexpa-analysis
 
-Static-analysis passes over a DEX file parsed by [`dex-core`](../dex-core/). It is part of [dex-parser-analyzer](../README.md).
+Static-analysis passes over a DEX file parsed by [`dexpa-core`](../dex-core/). It is part of [dex-parser-analyzer](../README.md).
 
 `engine::analyze_dex` runs three passes, each enabled by a flag in `config::AnalysisConfig`, and returns an `AnalysisReport` of findings plus counts:
 
-- **pattern** (`pattern.rs`): hardcoded secrets (regex, keyword and entropy heuristics over string literals), `http://` literals, and weak-crypto calls, found by correlating strings with `Cipher`/`MessageDigest.getInstance` invocations through `dex_core::graphs::build_xrefs`.
+- **pattern** (`pattern.rs`): hardcoded secrets (regex, keyword and entropy heuristics over string literals), `http://` literals, and weak-crypto calls, found by correlating strings with `Cipher`/`MessageDigest.getInstance` invocations through `dexpa_core::graphs::build_xrefs`.
 - **structural** (`structural.rs`): WebView misconfiguration (JavaScript plus a JavaScript interface or file access), SSL-error handlers that call `proceed()`, world-readable/writable file modes, and `Runtime.exec`/`ProcessBuilder` use.
 - **taint** (`taint.rs`): an intraprocedural forward data-flow pass (`data_flow.rs`) that tracks values from Android sources (Intent extras, SharedPreferences, device identifiers, Bundle strings) into sinks (logging, `URL`, `WebView.loadUrl`, SQLite, `Runtime.exec`) within one method.
 
 Every rule id, with its severity, its OWASP and CWE mapping and its known false positives, is in [docs/rules.md](../docs/rules.md).
 
 ```rust
-use dex_analysis::{config::AnalysisConfig, engine::analyze_dex};
-use dex_core::parse_dex;
+use dexpa_analysis::{config::AnalysisConfig, engine::analyze_dex};
+use dexpa_core::parse_dex;
 
-fn findings(bytes: &[u8]) -> Result<usize, dex_core::DexError> {
+fn findings(bytes: &[u8]) -> Result<usize, dexpa_core::DexError> {
     let dex = parse_dex(bytes)?;
     let config = AnalysisConfig { max_findings: Some(100), ..AnalysisConfig::default() };
     let report = analyze_dex(&dex, &config);

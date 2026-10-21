@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use crate::{config::AnalysisConfig, engine, error::AnalysisError, model::AnalysisReport};
 #[cfg(target_arch = "wasm32")]
-use dex_core::{
+use dexpa_core::{
     dto::{self, DexOverviewDto},
     parse_dex,
 };

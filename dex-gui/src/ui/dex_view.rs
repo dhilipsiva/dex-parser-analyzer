@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dex_core::dto::DexOverviewDto;
+use dexpa_core::dto::DexOverviewDto;
 use leptos::prelude::*;
 
 #[component]

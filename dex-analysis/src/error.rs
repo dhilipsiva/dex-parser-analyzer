@@ -12,8 +12,8 @@ pub enum AnalysisError {
     Internal(String),
 }
 
-impl From<dex_core::DexError> for AnalysisError {
-    fn from(err: dex_core::DexError) -> Self {
+impl From<dexpa_core::DexError> for AnalysisError {
+    fn from(err: dexpa_core::DexError) -> Self {
         AnalysisError::Parse(err.to_string())
     }
 }

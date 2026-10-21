@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dex_analysis::model::{AnalysisReport, Finding, Severity};
+use dexpa_analysis::model::{AnalysisReport, Finding, Severity};
 use leptos::prelude::*;
 
 const SEVERITY_ORDER: [Severity; 5] = [

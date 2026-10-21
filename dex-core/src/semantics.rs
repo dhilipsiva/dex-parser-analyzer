@@ -18,11 +18,11 @@ pub struct TypeDescriptor {
 /// Resolve a string index.
 ///
 /// ```
-/// # use dex_core::{semantics, DexError, parse_dex};
+/// # use dexpa_core::{semantics, DexError, parse_dex};
 /// # fn show_first_string(data: &[u8]) -> Result<(), DexError> {
 /// let dex = parse_dex(data)?;
 /// if dex.string_count() > 0 {
-///     let value = semantics::resolve_string(&dex, dex_core::format::StringIdx::new(0))?;
+///     let value = semantics::resolve_string(&dex, dexpa_core::format::StringIdx::new(0))?;
 ///     println!("first string: {value}");
 /// }
 /// # Ok(())

@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap};
 
-use dex_core::{
+use dexpa_core::{
     bytecode::{Instruction, Reference},
     format::MethodIdx,
     model::DexFile,
@@ -338,8 +338,8 @@ impl<'a> ForwardAnalysis for MethodTaintAnalysis<'a> {
     fn transfer_block(
         &self,
         ctx: &AnalysisContext<'_>,
-        _block: &dex_core::graphs::BasicBlock,
-        instructions: &[dex_core::bytecode::Instruction],
+        _block: &dexpa_core::graphs::BasicBlock,
+        instructions: &[dexpa_core::bytecode::Instruction],
         state: &mut Self::State,
     ) {
         let mut pending_source: Option<PendingSource> = None;

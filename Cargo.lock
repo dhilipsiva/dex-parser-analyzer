@@ -386,11 +386,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "dex-analysis"
+name = "dex-gui"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "dexpa-analysis",
+ "dexpa-core",
+ "gloo-file",
+ "leptos",
+ "log",
+ "wasm-bindgen",
+ "wasm-logger",
+]
+
+[[package]]
+name = "dexpa-analysis"
 version = "0.1.0"
 dependencies = [
  "aho-corasick",
- "dex-core",
+ "dexpa-core",
  "once_cell",
  "petgraph",
  "regex",
@@ -402,17 +416,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "dex-cli"
+name = "dexpa-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "dex-analysis",
- "dex-core",
+ "dexpa-analysis",
+ "dexpa-core",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
-name = "dex-core"
+name = "dexpa-core"
 version = "0.1.0"
 dependencies = [
  "bitflags",
@@ -424,20 +440,6 @@ dependencies = [
  "smallvec",
  "thiserror 2.0.21",
  "zip",
-]
-
-[[package]]
-name = "dex-gui"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "dex-analysis",
- "dex-core",
- "gloo-file",
- "leptos",
- "log",
- "wasm-bindgen",
- "wasm-logger",
 ]
 
 [[package]]

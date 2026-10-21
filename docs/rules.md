@@ -1,6 +1,6 @@
 # Rules
 
-Every finding id `dex-analysis` can emit, as of 2026-10-21. The id is `Finding::id`. The OWASP column names the category of the [OWASP Mobile Top 10 (2024)](https://owasp.org/www-project-mobile-top-10/) that the id's `M<n>` prefix refers to; where the prefix and the rule's subject diverge, the row says so. Renaming ids is a breaking change for anyone filtering on them, so any rename waits for the rule-catalogue work before v0.2.0 (TODO P3-DEX-02).
+Every finding id `dexpa-analysis` can emit, as of 2026-10-21. The id is `Finding::id`. The OWASP column names the category of the [OWASP Mobile Top 10 (2024)](https://owasp.org/www-project-mobile-top-10/) that the id's `M<n>` prefix refers to; where the prefix and the rule's subject diverge, the row says so. Renaming ids is a breaking change for anyone filtering on them, so any rename waits for the rule-catalogue work before v0.2.0 (TODO P3-DEX-02).
 
 All detection is per method unless stated. There is no interprocedural flow yet, so findings miss data that crosses method boundaries (planned: interprocedural taint summaries).
 

@@ -1,4 +1,4 @@
-Status: alpha, unreleased (every crate is 0.1.0). The parser and analyzer run on the bundled fixtures; v0.2.0 will publish the crates to crates.io as `dexpa-core`, `dexpa-analysis` and `dexpa-cli`.
+Status: alpha, unreleased (every crate is 0.1.0). The parser and analyzer run on the bundled fixtures; v0.2.0 will be the first crates.io release of `dexpa-core`, `dexpa-analysis` and `dexpa-cli` (binary `dexpa`).
 
 # dex-parser-analyzer
 
@@ -10,9 +10,9 @@ In-browser demo: https://dhilipsiva.github.io/dex-parser-analyzer/
 
 | Crate | What it is |
 |---|---|
-| [`dex-core`](dex-core/) | Zero-copy DEX parser: header and sections, classes, methods, Dalvik bytecode decoding, control-flow and call graphs, cross-references, serde DTOs, and multi-dex/APK input. |
-| [`dex-analysis`](dex-analysis/) | Static-analysis passes over a parsed file (pattern, structural and intraprocedural taint), producing serde-serializable findings. The rules are listed in [docs/rules.md](docs/rules.md). |
-| [`dex-cli`](dex-cli/) | A command-line summary of a DEX file plus its findings. |
+| [`dexpa-core`](dex-core/) | Zero-copy DEX parser: header and sections, classes, methods, Dalvik bytecode decoding, control-flow and call graphs, cross-references, serde DTOs, and multi-dex/APK input. |
+| [`dexpa-analysis`](dex-analysis/) | Static-analysis passes over a parsed file (pattern, structural and intraprocedural taint), producing serde-serializable findings. The rules are listed in [docs/rules.md](docs/rules.md). |
+| [`dexpa-cli`](dex-cli/) | The `dexpa` command: a summary and the findings of a DEX file or APK, as text or JSON, with CI-friendly exit codes. |
 | `dex-gui` | The Leptos and WebAssembly GUI behind the demo (not published to crates.io). |
 
 How the crates fit together is described in [docs/architecture.md](docs/architecture.md).
@@ -22,8 +22,8 @@ How the crates fit together is described in [docs/architecture.md](docs/architec
 ### Library
 
 ```rust
-use dex_analysis::{config::AnalysisConfig, engine::analyze_dex};
-use dex_core::parse_dex;
+use dexpa_analysis::{config::AnalysisConfig, engine::analyze_dex};
+use dexpa_core::parse_dex;
 
 fn run(bytes: &[u8]) -> anyhow::Result<()> {
     let dex = parse_dex(bytes)?;
@@ -39,10 +39,10 @@ fn run(bytes: &[u8]) -> anyhow::Result<()> {
 ### CLI
 
 ```bash
-cargo run -p dex-cli -- path/to/classes.dex --max-findings 25
+cargo run -p dexpa-cli -- path/to/app.apk --format json --fail-on high
 ```
 
-The CLI prints the header summary, the ten classes with the most methods, and the findings. Its options are documented in [dex-cli/README.md](dex-cli/README.md).
+`dexpa` prints the header summary, the ten classes with the most methods and the findings of every DEX file in the input. The options, the JSON schema and the exit codes are in [dex-cli/README.md](dex-cli/README.md).
 
 ### GUI
 

@@ -1,4 +1,4 @@
-use dex_core::{
+use dexpa_core::{
     multidex::{MultiDex, read_dex_buffers_from_apk},
     parse_dex,
 };

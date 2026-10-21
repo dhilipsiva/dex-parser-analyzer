@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use aho_corasick::AhoCorasick;
-use dex_core::{
+use dexpa_core::{
     format::{MethodIdx, StringIdx},
     graphs,
     model::DexFile,

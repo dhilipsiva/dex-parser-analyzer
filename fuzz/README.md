@@ -4,7 +4,7 @@ cargo-fuzz (libFuzzer) targets for the code that reads untrusted bytes:
 
 | Target | What it exercises |
 |---|---|
-| `parse_dex` | `dex_core::parse_dex`, every string, and the overview DTO |
+| `parse_dex` | `dexpa_core::parse_dex`, every string, and the overview DTO |
 | `decode_instructions` | bytecode decoding and the CFG for every method, the call graph and the cross-references |
 | `analyze_dex_bytes` | the whole analyzer, as the GUI runs it on an upload |
 

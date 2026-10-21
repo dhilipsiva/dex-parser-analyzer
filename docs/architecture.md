@@ -6,10 +6,10 @@ What exists in the workspace as of 2026-10-21. The documents in `docs/research/`
 
 ```
 bytes (.dex, or an APK through multidex)
-  -> dex_core::parse_dex           header, section tables, lazy string resolution
-  -> dex_core::DexFile             classes, methods, code items, decoded instructions
-  -> dex_core::graphs              CFG per method, call graph, cross-references
-  -> dex_analysis::engine          pattern, structural and taint passes
+  -> dexpa_core::parse_dex           header, section tables, lazy string resolution
+  -> dexpa_core::DexFile             classes, methods, code items, decoded instructions
+  -> dexpa_core::graphs              CFG per method, call graph, cross-references
+  -> dexpa_analysis::engine          pattern, structural and taint passes
   -> AnalysisReport                findings and counts (serde)
   -> dex-cli (text) / dex-gui (browser) / your code
 ```
@@ -39,7 +39,7 @@ Known gaps (PROGRESS.md "Next Steps" 1-2): the checksum, signature, `file_size` 
 | `config.rs` | `AnalysisConfig`: per-pass switches, the secret-entropy threshold and the finding cap. |
 | `engine.rs` | `analyze_dex` and `analyze_dex_bytes`: run the enabled passes, apply `max_findings`, fill `AnalysisStats`. |
 | `pattern.rs`, `structural.rs`, `taint.rs` | The three passes; every rule they emit is in [rules.md](rules.md). |
-| `data_flow.rs` | A worklist forward data-flow framework over `dex-core` CFGs, used by the taint pass. |
+| `data_flow.rs` | A worklist forward data-flow framework over `dexpa-core` CFGs, used by the taint pass. |
 | `model.rs` | `Finding` (id, kind, severity, location, message, JSON `extra`), `Severity`, `VulnerabilityKind`, `AnalysisReport`. |
 | `ffi.rs` | wasm32 only: `wasm-bindgen` exports for JavaScript hosts. |
 

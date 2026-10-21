@@ -116,7 +116,7 @@ impl<'a> DexFile<'a> {
     /// to read raw sections that do not yet have high-level helpers.
     ///
     /// ```
-    /// # use dex_core::{parse_dex, DexError};
+    /// # use dexpa_core::{parse_dex, DexError};
     /// # fn dump_sections(data: &[u8]) -> Result<(), DexError> {
     /// let dex = parse_dex(data)?;
     /// for item in dex.map_items() {
@@ -155,8 +155,8 @@ impl<'a> DexFile<'a> {
     /// lifetime of `self`.
     ///
     /// ```
-    /// # use dex_core::format::MAP_TYPE_CLASS_DATA_ITEM;
-    /// # fn inspect_class_data(dex: &dex_core::DexFile<'_>) {
+    /// # use dexpa_core::format::MAP_TYPE_CLASS_DATA_ITEM;
+    /// # fn inspect_class_data(dex: &dexpa_core::DexFile<'_>) {
     /// if let Some(bytes) = dex.section_bytes(MAP_TYPE_CLASS_DATA_ITEM) {
     ///     println!("class_data section size: {}", bytes.len());
     /// }

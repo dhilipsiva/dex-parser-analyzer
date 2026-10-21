@@ -1,6 +1,6 @@
-# dex-core
+# dexpa-core
 
-`dex-core` exposes the parsing and modeling primitives that every crate in this
+`dexpa-core` exposes the parsing and modeling primitives that every crate in this
 workspace builds upon. The crate consumes a `&[u8]` containing a single
 `classes.dex` file and turns it into a `DexFile` abstraction with lazy lookups,
 semantic helpers, and program-graph builders.
@@ -8,7 +8,7 @@ semantic helpers, and program-graph builders.
 ## Minimum Example
 
 ```rust
-use dex_core::{parse_dex, DexError};
+use dexpa_core::{parse_dex, DexError};
 
 fn inspect_dex(bytes: &[u8]) -> Result<(), DexError> {
     let dex = parse_dex(bytes)?;
@@ -41,9 +41,9 @@ fn inspect_dex(bytes: &[u8]) -> Result<(), DexError> {
 Once a file is parsed you can build higher-level program structures:
 
 ```rust
-use dex_core::{graphs, parse_dex};
+use dexpa_core::{graphs, parse_dex};
 
-fn call_graph_edges(bytes: &[u8]) -> Result<Vec<(u32, u32)>, dex_core::DexError> {
+fn call_graph_edges(bytes: &[u8]) -> Result<Vec<(u32, u32)>, dexpa_core::DexError> {
     let dex = parse_dex(bytes)?;
     let cg = graphs::build_call_graph(&dex)?;
     Ok(cg.edge_indices()

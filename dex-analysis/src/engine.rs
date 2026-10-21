@@ -1,8 +1,8 @@
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
 
-use dex_core::format::MethodIdx;
-use dex_core::model::DexFile;
+use dexpa_core::format::MethodIdx;
+use dexpa_core::model::DexFile;
 
 use crate::{
     config::AnalysisConfig,
@@ -51,7 +51,7 @@ pub fn analyze_dex_bytes(
     bytes: &[u8],
     config: &AnalysisConfig,
 ) -> Result<AnalysisReport, AnalysisError> {
-    let dex = dex_core::parse_dex(bytes)?;
+    let dex = dexpa_core::parse_dex(bytes)?;
     Ok(analyze_dex(&dex, config))
 }
 

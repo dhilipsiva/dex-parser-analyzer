@@ -2,7 +2,7 @@
 //! fixture in memory; the parse must return (an error, where the input is invalid) and never panic,
 //! overflow the stack or try to allocate memory the input cannot justify.
 
-use dex_core::{DexError, format::MethodIdx, parse_dex};
+use dexpa_core::{DexError, format::MethodIdx, parse_dex};
 
 fn fixture(name: &str) -> Vec<u8> {
     std::fs::read(format!("tests/data/{name}")).expect("read fixture")

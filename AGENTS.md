@@ -2,9 +2,9 @@
 
 dex-parser-analyzer is a Cargo workspace of four crates (layout and module roles: `docs/architecture.md`):
 
-- `dex-core/`: the DEX parser, bytecode decoder, graphs and DTOs. Tests are in `dex-core/tests/`, fixtures in `dex-core/tests/data/` (Androguard-derived, Apache-2.0; see NOTICE).
-- `dex-analysis/`: the pattern, structural and taint passes. Every rule id is in `docs/rules.md`, which must change in the same commit as any rule.
-- `dex-cli/`: the command-line front end.
+- `dex-core/` (package `dexpa-core`): the DEX parser, bytecode decoder, graphs and DTOs. Tests are in `dex-core/tests/`, fixtures in `dex-core/tests/data/` (Androguard-derived, Apache-2.0; see NOTICE).
+- `dex-analysis/` (package `dexpa-analysis`): the pattern, structural and taint passes. Every rule id is in `docs/rules.md`, which must change in the same commit as any rule.
+- `dex-cli/`: the `dexpa` command-line front end (package `dexpa-cli`; integration tests in `dex-cli/tests/cli.rs`).
 - `dex-gui/`: the Leptos 0.8 browser GUI (wasm32, built with trunk; `publish = false`).
 
 ## Commands
@@ -20,7 +20,7 @@ Work inside the dev shell, which pins the toolchain from `rust-toolchain.toml`:
 | `just test` | `cargo test --workspace` |
 | `just doc` | rustdoc with `-D warnings` |
 | `just deny` | `cargo deny check advisories bans licenses sources` (policy in `deny.toml`) |
-| `cargo run -p dex-cli -- <file.dex>` | run the CLI on a file |
+| `cargo run -p dexpa-cli -- <file.dex or .apk>` | run the `dexpa` CLI |
 | `cd dex-gui && trunk serve` | run the GUI locally |
 
 CI (`.github/workflows/ci.yml`) runs the same checks.

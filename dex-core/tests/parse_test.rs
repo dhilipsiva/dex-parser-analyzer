@@ -1,4 +1,4 @@
-use dex_core::{bytecode::Reference, format, parse_dex};
+use dexpa_core::{bytecode::Reference, format, parse_dex};
 
 fn load_fixture() -> Vec<u8> {
     std::fs::read("tests/data/Test.dex").expect("missing fixture")

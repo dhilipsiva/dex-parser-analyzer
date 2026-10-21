@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use dex_core::{
+use dexpa_core::{
     format::{MethodIdx, ProtoIdx},
     model::DexFile,
 };

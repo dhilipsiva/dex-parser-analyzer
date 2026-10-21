@@ -22,5 +22,5 @@ wasm-logger = "0.2"
 log = "0.4"
 gloo-file = { version = "0.3", features = ["futures"] }
 
-dex-core = { path = "../dex-core", version = "0.1.0" }
-dex-analysis = { path = "../dex-analysis", version = "0.1.0" }
+dexpa-core = { path = "../dex-core", version = "0.1.0" }
+dexpa-analysis = { path = "../dex-analysis", version = "0.1.0" }

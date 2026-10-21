@@ -1,4 +1,4 @@
-use dex_analysis::{
+use dexpa_analysis::{
     analyze_dex_bytes,
     config::AnalysisConfig,
     engine,
@@ -14,7 +14,7 @@ fn load_fixture(name: &str) -> Vec<u8> {
 
 fn run_with_fixture(name: &str, config: AnalysisConfig) -> AnalysisReport {
     let bytes = load_fixture(name);
-    let dex = dex_core::parse_dex(&bytes).expect("parse");
+    let dex = dexpa_core::parse_dex(&bytes).expect("parse");
     engine::analyze_dex(&dex, &config)
 }
 

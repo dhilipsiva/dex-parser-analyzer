@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use dex_core::{bytecode::Reference, format::MethodIdx, model::DexFile};
+use dexpa_core::{bytecode::Reference, format::MethodIdx, model::DexFile};
 use serde_json::json;
 
 use crate::{
@@ -169,7 +169,7 @@ struct LiteralTracker {
 }
 
 impl LiteralTracker {
-    fn observe(&mut self, inst: &dex_core::bytecode::Instruction) {
+    fn observe(&mut self, inst: &dexpa_core::bytecode::Instruction) {
         let name = inst.name;
         if name.starts_with("const") {
             if let (Some(&dst), Some(value)) = (inst.registers.first(), inst.literal) {
