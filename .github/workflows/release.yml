@@ -2,8 +2,8 @@
 # Tag -> preflight -> the CI gate -> dexpa binaries -> a DRAFT GitHub Release with checksums and
 # build provenance -> crates.io (dexpa-core, dexpa-analysis, dexpa-cli) -> undraft -> redeploy the
 # GUI. A manual run is always a rehearsal: it builds, packages and dry-runs the publish, and
-# creates and deploys nothing. Every action in this file is pinned to a full commit SHA with its
-# release tag; deploy-dex-gui.yml, which `gui` calls, still uses tag refs until its rework.
+# creates and deploys nothing. Every action, here and in deploy-dex-gui.yml, is pinned to a full
+# commit SHA with its release tag.
 #
 # Changes from the template: the pinned toolchain (rust-toolchain.toml) instead of +stable, a
 # rehearsal that falls back to the [Unreleased] notes with a warning when CHANGELOG.md is not
