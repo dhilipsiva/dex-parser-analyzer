@@ -2,6 +2,8 @@ name: Deploy dex-gui
 
 on:
   workflow_dispatch:
+  # release.yml redeploys the tagged GUI after a release.
+  workflow_call:
   push:
     branches:
       - main

@@ -1,0 +1,325 @@
+# Release for dex-parser-analyzer, from products/templates/release.yml; the runbook is RELEASING.md.
+# Tag -> preflight -> the CI gate -> dexpa binaries -> a DRAFT GitHub Release with checksums and
+# build provenance -> crates.io (dexpa-core, dexpa-analysis, dexpa-cli) -> undraft -> redeploy the
+# GUI. A manual run is always a rehearsal: it builds, packages and dry-runs the publish, and
+# creates and deploys nothing. Every action in this file is pinned to a full commit SHA with its
+# release tag; deploy-dex-gui.yml, which `gui` calls, still uses tag refs until its rework.
+#
+# Changes from the template: the pinned toolchain (rust-toolchain.toml) instead of +stable, a
+# rehearsal that falls back to the [Unreleased] notes with a warning when CHANGELOG.md is not
+# rolled yet, and the `gui` job.
+name: Release
+
+on:
+  push:
+    tags:
+      # Semver tags only, so an archival tag such as `v0.1-final` never drives a release.
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to rehearse, without the leading v (blank = the manifest version)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Serialises releases. Never cancel one in progress: a cancelled `cargo publish` leaves a
+# half-published workspace.
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  BIN: dexpa
+  # The crates to publish. cargo (1.90 or later) publishes them in dependency order, whatever order they are listed in.
+  CRATES: dexpa-core dexpa-analysis dexpa-cli
+
+jobs:
+  setup:
+    name: Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      dry_run: ${{ steps.resolve.outputs.dry_run }}
+      prerelease: ${{ steps.resolve.outputs.prerelease }}
+      notes_section: ${{ steps.changelog.outputs.section }}
+    env:
+      # Whether the token exists, never the token: secrets cannot appear in a step-level `if:`.
+      HAS_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN != '' }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The ancestry check needs history.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve version, tag and mode
+        id: resolve
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          manifest=$(python3 -c 'import tomllib; m = tomllib.load(open("Cargo.toml", "rb")); print(m.get("workspace", {}).get("package", {}).get("version") or m["package"]["version"])')
+          if [ "$EVENT" = "push" ]; then
+            version="${REF_NAME#v}"
+            dry=false
+          else
+            # A manual run is forced to a rehearsal: there is no "publish for real" option to mis-click.
+            version="${INPUT_VERSION:-$manifest}"
+            dry=true
+          fi
+          case "$version" in *-*) pre=true ;; *) pre=false ;; esac
+          {
+            echo "version=$version"
+            echo "tag=v$version"
+            echo "dry_run=$dry"
+            echo "prerelease=$pre"
+            echo "manifest=$manifest"
+          } >> "$GITHUB_OUTPUT"
+          echo "### Release $version (dry_run=$dry, prerelease=$pre)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Tag, manifest and CHANGELOG agree
+        id: changelog
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+          MANIFEST: ${{ steps.resolve.outputs.manifest }}
+          DRY: ${{ steps.resolve.outputs.dry_run }}
+        run: |
+          set -euo pipefail
+          if [ "$VERSION" != "$MANIFEST" ]; then
+            echo "::error title=Version mismatch::the tag says $VERSION, Cargo.toml says $MANIFEST" >&2
+            exit 1
+          fi
+          if grep -q "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "section=$VERSION" >> "$GITHUB_OUTPUT"
+          elif [ "$DRY" = "true" ]; then
+            # A rehearsal before the roll still exercises everything, on the Unreleased notes.
+            echo "::warning title=CHANGELOG not rolled::no '## [$VERSION]' section yet; rehearsing with [Unreleased]. A tag would fail here."
+            echo "section=Unreleased" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error title=CHANGELOG not rolled::CHANGELOG.md has no '## [$VERSION]' section" >&2
+            exit 1
+          fi
+      - name: The tagged commit is on main
+        if: github.event_name == 'push'
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$SHA" origin/main; then
+            echo "::error title=Tag is not on main::$SHA is not on origin/main. Merge, let CI go green, then tag." >&2
+            exit 1
+          fi
+      - name: A real release has the crates.io token
+        env:
+          DRY: ${{ steps.resolve.outputs.dry_run }}
+        run: |
+          if [ "$DRY" != "true" ] && [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error title=CARGO_REGISTRY_TOKEN unset::this tag would publish to crates.io; add the repository secret (publish-update scope, with an expiry) and re-run" >&2
+            exit 1
+          fi
+
+  gate:
+    name: CI
+    needs: setup
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      # A partial asset set must never reach the release.
+      fail-fast: true
+      matrix:
+        # Pinned runner images instead of *-latest, so the ABI floor of the binaries never moves
+        # silently.
+        include:
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-24.04 }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-24.04-arm }
+          - { target: aarch64-apple-darwin, os: macos-15 }
+          - { target: x86_64-pc-windows-msvc, os: windows-2025 }
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the pinned toolchain (rust-toolchain.toml)
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          rustup toolchain install
+          rustup target add "$TARGET"
+      - name: Build the release binary
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: cargo build --locked --release --target "$TARGET" --bin "$BIN"
+      - name: Package
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ needs.setup.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          name="$BIN-$VERSION-$TARGET"
+          if [[ "$TARGET" == *windows* ]]; then
+            cp "target/$TARGET/release/$BIN.exe" .
+            7z a "dist/$name.zip" "$BIN.exe" README.md LICENSE-MIT LICENSE-APACHE
+          else
+            tar --create --gzip --file "dist/$name.tar.gz" -C "target/$TARGET/release" "$BIN" \
+              -C "$GITHUB_WORKSPACE" README.md LICENSE-MIT LICENSE-APACHE
+          fi
+      - name: Keep the archive
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/*
+          retention-days: 14
+          if-no-files-found: error
+
+  release:
+    name: Draft the GitHub Release
+    needs: [setup, gate, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Collect the archives
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+      - name: Write SHA256SUMS
+        run: |
+          set -euo pipefail
+          cd dist
+          # Sorted, and never hashing itself, so the file is deterministic.
+          mapfile -t files < <(find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | sort)
+          sha256sum -- "${files[@]}" > SHA256SUMS
+          { echo '```'; cat SHA256SUMS; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Release notes from CHANGELOG
+        env:
+          SECTION: ${{ needs.setup.outputs.notes_section }}
+        run: |
+          set -euo pipefail
+          awk -v v="$SECTION" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && /^## \[/ {exit} on {print}' CHANGELOG.md > NOTES.md
+          test -s NOTES.md
+      - name: Attest the assets' build provenance
+        if: needs.setup.outputs.dry_run != 'true'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Create or update the draft release
+        if: needs.setup.outputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.setup.outputs.tag }}
+          VERSION: ${{ needs.setup.outputs.version }}
+          PRERELEASE: ${{ needs.setup.outputs.prerelease }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          title="$REPO $VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # No --draft here: passing it to `edit` on a published release would retract it.
+            gh release edit "$TAG" --title "$title" --notes-file NOTES.md
+          else
+            args=(--draft --title "$title" --notes-file NOTES.md)
+            if [ "$PRERELEASE" = "true" ]; then args+=(--prerelease); fi
+            gh release create "$TAG" "${args[@]}"
+          fi
+          gh release upload "$TAG" dist/* --clobber
+      - name: Rehearsal, what would have shipped
+        if: needs.setup.outputs.dry_run == 'true'
+        run: |
+          { echo '## Dry run: no release was created'; echo; echo '```'; ls -la dist; echo '```'; echo; cat NOTES.md; } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: Publish to crates.io
+    needs: [setup, release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # The registry token and repository write access never share a job.
+    permissions: {}
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      DRY: ${{ needs.setup.outputs.dry_run }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the pinned toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: The crates.io token is live
+        if: needs.setup.outputs.dry_run != 'true'
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # A missing token fails in setup; an expired or revoked one would fail mid-publish.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: $CARGO_REGISTRY_TOKEN" \
+            -H "User-Agent: release (github.com/$REPOSITORY)" https://crates.io/api/v1/me)
+          if [ "$code" != "200" ]; then
+            echo "::error title=crates.io token rejected::HTTP $code from /api/v1/me" >&2
+            exit 1
+          fi
+      - name: Publish the crates
+        run: |
+          set -euo pipefail
+          read -r -a crates <<< "$CRATES"
+          args=()
+          for c in "${crates[@]}"; do args+=(--package "$c"); done
+          if [ "$DRY" = "true" ]; then
+            # A rehearsal still packages and verify-builds every tarball.
+            cargo publish --locked --dry-run "${args[@]}"
+          else
+            cargo publish --locked "${args[@]}"
+          fi
+
+  finalize:
+    name: Make the release public
+    needs: [setup, publish]
+    if: needs.setup.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Undraft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.setup.outputs.tag }}
+        run: gh release edit "$TAG" --draft=false
+
+  gui:
+    name: Redeploy the GUI
+    needs: [setup, finalize]
+    if: needs.setup.outputs.dry_run != 'true'
+    # Deploys the tagged commit. The github-pages environment must allow tags matching v* (one-time
+    # setting, RELEASING.md); the release itself is already public if this job fails.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-dex-gui.yml

@@ -56,4 +56,4 @@ A Leptos 0.8 client-side app compiled to wasm32 with trunk. The user picks a fil
 
 ## Toolchain and gates
 
-`rust-toolchain.toml` pins Rust 1.99.1 with rustfmt, clippy and the wasm32 target. `flake.nix` builds its dev shell from that file and adds trunk, just and cargo-deny. `just ci` runs the gate (fmt, clippy native and wasm32, tests, docs, cargo deny), and `.github/workflows/ci.yml` runs the same checks on every push.
+`rust-toolchain.toml` pins Rust 1.99.1 with rustfmt, clippy and the wasm32 target. `flake.nix` builds its dev shell from that file and adds trunk, just and cargo-deny. `just ci` runs the gate (fmt, clippy native and wasm32, tests, docs, cargo deny), and `.github/workflows/ci.yml` runs the same checks on every push. The flake also builds `packages.dex-cli` and `packages.dex-gui` with the same pinned toolchain. `.github/workflows/release.yml` calls `ci.yml` as its gate, then builds the binaries, drafts the GitHub Release, publishes the crates and redeploys the GUI ([RELEASING.md](../RELEASING.md)).

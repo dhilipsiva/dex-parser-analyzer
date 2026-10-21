@@ -17,6 +17,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - The fixture-sweep tests fail when a fixture is not a DEX file, instead of skipping it.
 
 ### Added
+- A release workflow (`.github/workflows/release.yml`, runbook in RELEASING.md): a `v*` tag publishes `dexpa-core`, `dexpa-analysis` and `dexpa-cli` to crates.io, attaches `dexpa` binaries for Linux (x86_64, aarch64), macOS (aarch64) and Windows (x86_64) with SHA256SUMS and build provenance to the GitHub Release, and redeploys the GUI. A manual run is a rehearsal that creates nothing. `just release` rehearses locally.
+- Flake packages: `nix build .#dex-cli` (also the default, so `nix run . -- app.apk` works) and `nix build .#dex-gui`, the static GUI bundle.
 - A positive and a negative test for every rule id, against DEX fixtures compiled from documented Java sources in `dex-analysis/tests/fixtures-src` (`nix develop .#fixtures -c just fixtures`, with a pinned R8), and a test that docs/rules.md, the catalogue and the tests list the same ids, CWEs and remediation text.
 - `dexpa` reads APKs and multi-dex zips as well as `.dex` files, prints `--format json` (a versioned schema, documented in dex-cli/README.md), and exits with 2 when a finding meets `--fail-on <severity>` (1 on unreadable or unparsable input). Integration tests drive the binary.
 - `deny.toml`, with `cargo deny` in CI, and Dependabot updates for Cargo and GitHub Actions.

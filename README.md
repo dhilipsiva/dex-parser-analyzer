@@ -40,6 +40,7 @@ fn run(bytes: &[u8]) -> anyhow::Result<()> {
 
 ```bash
 cargo run -p dexpa-cli -- path/to/app.apk --format json --fail-on high
+nix run github:dhilipsiva/dex-parser-analyzer -- path/to/app.apk   # or, with Nix, no checkout
 ```
 
 `dexpa` prints the header summary, the ten classes with the most methods and the findings of every DEX file in the input. The options, the JSON schema and the exit codes are in [dex-cli/README.md](dex-cli/README.md).
@@ -50,6 +51,8 @@ cargo run -p dexpa-cli -- path/to/app.apk --format json --fail-on high
 nix develop
 cd dex-gui && trunk serve
 ```
+
+`nix build .#dex-gui` builds the static bundle (`index.html`, the JS glue and the wasm), which works from any path.
 
 ## Building and testing
 

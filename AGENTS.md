@@ -20,11 +20,13 @@ Work inside the dev shell, which pins the toolchain from `rust-toolchain.toml`:
 | `just test` | `cargo test --workspace` |
 | `just doc` | rustdoc with `-D warnings` |
 | `just fixtures` | inside `nix develop .#fixtures` (JDK 21 and a pinned R8): recompile `dex-analysis/tests/fixtures-src` into `dex-analysis/tests/data/rules-{positive,negative}.dex` |
+| `just release` | the local release rehearsal: `ci`, `cargo publish --dry-run` for the three crates, and `nix build` of both packages; uploads nothing (RELEASING.md) |
+| `nix build .#dex-cli` / `nix build .#dex-gui` | the `dexpa` binary / the static GUI bundle |
 | `just deny` | `cargo deny check advisories bans licenses sources` (policy in `deny.toml`) |
 | `cargo run -p dexpa-cli -- <file.dex or .apk>` | run the `dexpa` CLI |
 | `cd dex-gui && trunk serve` | run the GUI locally |
 
-CI (`.github/workflows/ci.yml`) runs the same checks.
+CI (`.github/workflows/ci.yml`) runs the same checks. `.github/workflows/release.yml` releases on a `v*` tag; only the owner tags (RELEASING.md).
 
 ## Rules
 

@@ -41,6 +41,11 @@ ci: lint clippy-wasm test doc deny
 release-dry-run:
     cargo publish --locked --dry-run --workspace
 
+# The local release rehearsal (RELEASING.md, "Before tagging"): the gate, the publish dry run, and
+# the two Nix packages (the dexpa binary and the GUI bundle). Uploads nothing.
+release: ci release-dry-run
+    nix build --no-link --print-out-paths .#dex-cli .#dex-gui
+
 # Fuzz one target for `seconds` (inside `nix develop .#fuzz`); seeds are the small test fixtures.
 fuzz target="parse_dex" seconds="60":
     mkdir -p fuzz/corpus/{{target}}
