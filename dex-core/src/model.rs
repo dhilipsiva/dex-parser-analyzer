@@ -91,7 +91,7 @@ impl<'a> DexFile<'a> {
             map_items: map_items.into_boxed_slice(),
             annotations,
             link_data,
-            data_end: (header.data_off + header.data_size) as usize,
+            data_end: header.data_off.saturating_add(header.data_size) as usize,
             type_lists,
             annotation_set_ref_lists,
             annotation_sets,

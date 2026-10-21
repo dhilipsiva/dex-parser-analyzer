@@ -269,7 +269,12 @@ fn parse_string_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[StringId
 
 fn parse_type_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[TypeId]>> {
     let count = header.type_ids_size as usize;
-    let section = slice(bytes, header.type_ids_off, count * 4, "type_ids")?;
+    let section = slice(
+        bytes,
+        header.type_ids_off,
+        table_len(count, 4, "type_ids")?,
+        "type_ids",
+    )?;
     let mut out = Vec::with_capacity(count);
     for chunk in section.as_chunks::<4>().0 {
         let idx = u32::from_le_bytes(*chunk);
@@ -282,7 +287,12 @@ fn parse_type_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[TypeId]>> 
 
 fn parse_proto_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[ProtoId]>> {
     let count = header.proto_ids_size as usize;
-    let section = slice(bytes, header.proto_ids_off, count * 12, "proto_ids")?;
+    let section = slice(
+        bytes,
+        header.proto_ids_off,
+        table_len(count, 12, "proto_ids")?,
+        "proto_ids",
+    )?;
     let mut out = Vec::with_capacity(count);
     for chunk in section.as_chunks::<12>().0 {
         let shorty_idx = u32::from_le_bytes(chunk[0..4].try_into().unwrap());
@@ -299,7 +309,12 @@ fn parse_proto_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[ProtoId]>
 
 fn parse_field_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[FieldId]>> {
     let count = header.field_ids_size as usize;
-    let section = slice(bytes, header.field_ids_off, count * 8, "field_ids")?;
+    let section = slice(
+        bytes,
+        header.field_ids_off,
+        table_len(count, 8, "field_ids")?,
+        "field_ids",
+    )?;
     let mut out = Vec::with_capacity(count);
     for chunk in section.as_chunks::<8>().0 {
         let class_idx = u16::from_le_bytes(chunk[0..2].try_into().unwrap()) as u32;
@@ -316,7 +331,12 @@ fn parse_field_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[FieldId]>
 
 fn parse_method_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[MethodId]>> {
     let count = header.method_ids_size as usize;
-    let section = slice(bytes, header.method_ids_off, count * 8, "method_ids")?;
+    let section = slice(
+        bytes,
+        header.method_ids_off,
+        table_len(count, 8, "method_ids")?,
+        "method_ids",
+    )?;
     let mut out = Vec::with_capacity(count);
     for chunk in section.as_chunks::<8>().0 {
         let class_idx = u16::from_le_bytes(chunk[0..2].try_into().unwrap()) as u32;
@@ -333,7 +353,12 @@ fn parse_method_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[MethodId
 
 fn parse_class_defs(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[ClassDef]>> {
     let count = header.class_defs_size as usize;
-    let section = slice(bytes, header.class_defs_off, count * 32, "class_defs")?;
+    let section = slice(
+        bytes,
+        header.class_defs_off,
+        table_len(count, 32, "class_defs")?,
+        "class_defs",
+    )?;
     let mut out = Vec::with_capacity(count);
     for chunk in section.as_chunks::<32>().0 {
         let class_idx = u32::from_le_bytes(chunk[0..4].try_into().unwrap());
@@ -365,6 +390,23 @@ fn parse_class_defs(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[ClassDef
         });
     }
     Ok(out.into_boxed_slice())
+}
+
+/// Encoded arrays and annotations nest; real files stay shallow, crafted ones would exhaust the stack.
+const MAX_ENCODED_VALUE_DEPTH: usize = 64;
+
+/// A capacity for `count` items declared by the file, capped at what the input could hold (every
+/// item takes at least one byte), so a crafted count cannot trigger a huge allocation.
+fn bounded(count: usize, bytes: &[u8]) -> usize {
+    count.min(bytes.len())
+}
+
+/// `count * item` for an id table, as an error rather than an overflow on 32-bit targets.
+fn table_len(count: usize, item: usize, context: &'static str) -> DexResult<usize> {
+    count.checked_mul(item).ok_or(DexError::Malformed {
+        context,
+        message: "size overflow",
+    })
 }
 
 /// The bytes from `offset` to the end of the buffer, or an error when a crafted offset points past it.
@@ -414,7 +456,7 @@ fn parse_encoded_fields(
     cursor: &mut usize,
     count: u32,
 ) -> DexResult<Vec<EncodedField>> {
-    let mut out = Vec::with_capacity(count as usize);
+    let mut out = Vec::with_capacity(bounded(count as usize, bytes));
     let mut running = 0u32;
     for _ in 0..count {
         let (field_idx_diff, used) =
@@ -442,7 +484,7 @@ fn parse_encoded_methods(
     cursor: &mut usize,
     count: u32,
 ) -> DexResult<Vec<EncodedMethod>> {
-    let mut out = Vec::with_capacity(count as usize);
+    let mut out = Vec::with_capacity(bounded(count as usize, bytes));
     let mut running = 0u32;
     for _ in 0..count {
         let (method_idx_diff, used) =
@@ -499,7 +541,7 @@ fn parse_code_item<'a>(bytes: &'a [u8], offset: u32) -> DexResult<CodeItem<'a>> 
     };
     cursor += padding as usize;
 
-    let mut tries = Vec::with_capacity(tries_size as usize);
+    let mut tries = Vec::with_capacity(bounded(tries_size as usize, bytes));
     for _ in 0..tries_size {
         let start_addr = read_u32(bytes, &mut cursor)?;
         let insn_count = read_u16(bytes, &mut cursor)?;
@@ -554,7 +596,7 @@ fn parse_catch_handler(bytes: &[u8], cursor: &mut usize) -> DexResult<EncodedCat
         size_raw as u32
     };
 
-    let mut handlers = Vec::with_capacity(handler_count as usize);
+    let mut handlers = Vec::with_capacity(bounded(handler_count as usize, bytes));
     for _ in 0..handler_count {
         let (type_idx, used) = read_uleb128(
             tail(bytes, *cursor, "encoded_type_addr_pair")?,
@@ -661,7 +703,8 @@ pub(crate) fn read_sleb128(input: &[u8], context: &'static str) -> DexResult<(i3
     let mut byte_count = 0usize;
     let mut byte;
     loop {
-        if byte_count >= input.len() {
+        // A 32-bit sleb128 is at most five bytes; a longer run is malformed and would overflow the shift.
+        if byte_count >= input.len() || byte_count >= 5 {
             return Err(DexError::Leb128 { context });
         }
         byte = input[byte_count];
@@ -684,7 +727,7 @@ fn parse_map_list(bytes: &[u8], header: &DexHeader) -> DexResult<Vec<MapItem>> {
     }
     let mut cursor = header.map_off as usize;
     let size = read_u32(bytes, &mut cursor)? as usize;
-    let mut items = Vec::with_capacity(size);
+    let mut items = Vec::with_capacity(bounded(size, bytes));
     for _ in 0..size {
         let type_code = read_u16(bytes, &mut cursor)?;
         cursor += 2; // unused field
@@ -706,7 +749,7 @@ fn parse_annotations_directory(bytes: &[u8], offset: u32) -> DexResult<Annotatio
     let methods_size = read_u32(bytes, &mut cursor)? as usize;
     let params_size = read_u32(bytes, &mut cursor)? as usize;
 
-    let mut field_annotations = Vec::with_capacity(fields_size);
+    let mut field_annotations = Vec::with_capacity(bounded(fields_size, bytes));
     for _ in 0..fields_size {
         let field_idx = read_u32(bytes, &mut cursor)?;
         let annotations_offset = read_u32(bytes, &mut cursor)?;
@@ -716,7 +759,7 @@ fn parse_annotations_directory(bytes: &[u8], offset: u32) -> DexResult<Annotatio
         });
     }
 
-    let mut method_annotations = Vec::with_capacity(methods_size);
+    let mut method_annotations = Vec::with_capacity(bounded(methods_size, bytes));
     for _ in 0..methods_size {
         let method_idx = read_u32(bytes, &mut cursor)?;
         let annotations_offset = read_u32(bytes, &mut cursor)?;
@@ -726,7 +769,7 @@ fn parse_annotations_directory(bytes: &[u8], offset: u32) -> DexResult<Annotatio
         });
     }
 
-    let mut parameter_annotations = Vec::with_capacity(params_size);
+    let mut parameter_annotations = Vec::with_capacity(bounded(params_size, bytes));
     for _ in 0..params_size {
         let method_idx = read_u32(bytes, &mut cursor)?;
         let annotations_offset = read_u32(bytes, &mut cursor)?;
@@ -818,11 +861,11 @@ fn insert_mapped<T>(map: &mut BTreeMap<u32, T>, entries: Vec<(u32, T)>) {
 
 fn parse_type_lists(bytes: &[u8], item: &MapItem) -> DexResult<Vec<(u32, TypeList)>> {
     let mut cursor = item.offset as usize;
-    let mut lists = Vec::with_capacity(item.size as usize);
+    let mut lists = Vec::with_capacity(bounded(item.size as usize, bytes));
     for _ in 0..item.size {
         let start = cursor;
         let size = read_u32_ctx(bytes, &mut cursor, "type_list")? as usize;
-        let mut types = Vec::with_capacity(size);
+        let mut types = Vec::with_capacity(bounded(size, bytes));
         for _ in 0..size {
             let ty = read_u16_ctx(bytes, &mut cursor, "type_item")?;
             types.push(TypeIdx::new(ty as u32));
@@ -852,11 +895,11 @@ fn parse_annotation_set_ref_lists(
     item: &MapItem,
 ) -> DexResult<Vec<(u32, AnnotationSetRefList)>> {
     let mut cursor = item.offset as usize;
-    let mut lists = Vec::with_capacity(item.size as usize);
+    let mut lists = Vec::with_capacity(bounded(item.size as usize, bytes));
     for _ in 0..item.size {
         let start = cursor;
         let size = read_u32_ctx(bytes, &mut cursor, "annotation_set_ref_list")? as usize;
-        let mut entries = Vec::with_capacity(size);
+        let mut entries = Vec::with_capacity(bounded(size, bytes));
         for _ in 0..size {
             let off = read_u32_ctx(bytes, &mut cursor, "annotation_set_ref_item")?;
             entries.push(off);
@@ -871,11 +914,11 @@ fn parse_annotation_set_items(
     item: &MapItem,
 ) -> DexResult<Vec<(u32, AnnotationSetItem)>> {
     let mut cursor = item.offset as usize;
-    let mut lists = Vec::with_capacity(item.size as usize);
+    let mut lists = Vec::with_capacity(bounded(item.size as usize, bytes));
     for _ in 0..item.size {
         let start = cursor;
         let size = read_u32_ctx(bytes, &mut cursor, "annotation_set_item")? as usize;
-        let mut entries = Vec::with_capacity(size);
+        let mut entries = Vec::with_capacity(bounded(size, bytes));
         for _ in 0..size {
             let off = read_u32_ctx(bytes, &mut cursor, "annotation_off_item")?;
             entries.push(off);
@@ -890,7 +933,7 @@ fn parse_annotation_items<'a>(
     item: &MapItem,
 ) -> DexResult<Vec<(u32, AnnotationItem<'a>)>> {
     let mut cursor = item.offset as usize;
-    let mut annotations = Vec::with_capacity(item.size as usize);
+    let mut annotations = Vec::with_capacity(bounded(item.size as usize, bytes));
     for _ in 0..item.size {
         let start = cursor;
         let visibility = *bytes.get(cursor).ok_or(DexError::SectionOutOfBounds {
@@ -900,7 +943,7 @@ fn parse_annotation_items<'a>(
         })?;
         cursor += 1;
         let annotation_start = cursor;
-        skip_encoded_annotation(bytes, &mut cursor)?;
+        skip_encoded_annotation(bytes, &mut cursor, 0)?;
         let data = bytes
             .get(annotation_start..cursor)
             .ok_or(DexError::SectionOutOfBounds {
@@ -924,10 +967,10 @@ fn parse_encoded_array_items<'a>(
     item: &MapItem,
 ) -> DexResult<Vec<(u32, EncodedArrayItem<'a>)>> {
     let mut cursor = item.offset as usize;
-    let mut arrays = Vec::with_capacity(item.size as usize);
+    let mut arrays = Vec::with_capacity(bounded(item.size as usize, bytes));
     for _ in 0..item.size {
         let start = cursor;
-        skip_encoded_array(bytes, &mut cursor)?;
+        skip_encoded_array(bytes, &mut cursor, 0)?;
         let data = bytes
             .get(start..cursor)
             .ok_or(DexError::SectionOutOfBounds {
@@ -942,7 +985,7 @@ fn parse_encoded_array_items<'a>(
 
 fn parse_call_site_ids(bytes: &[u8], item: &MapItem) -> DexResult<Vec<CallSiteIdItem>> {
     let mut cursor = item.offset as usize;
-    let mut entries = Vec::with_capacity(item.size as usize);
+    let mut entries = Vec::with_capacity(bounded(item.size as usize, bytes));
     for _ in 0..item.size {
         let call_site_off = read_u32_ctx(bytes, &mut cursor, "call_site_id_item")?;
         entries.push(CallSiteIdItem { call_site_off });
@@ -952,7 +995,7 @@ fn parse_call_site_ids(bytes: &[u8], item: &MapItem) -> DexResult<Vec<CallSiteId
 
 fn parse_method_handles(bytes: &[u8], item: &MapItem) -> DexResult<Vec<MethodHandleItem>> {
     let mut cursor = item.offset as usize;
-    let mut entries = Vec::with_capacity(item.size as usize);
+    let mut entries = Vec::with_capacity(bounded(item.size as usize, bytes));
     for _ in 0..item.size {
         let handle_type = read_u16_ctx(bytes, &mut cursor, "method_handle_item")?;
         // Skip reserved field.
@@ -966,25 +1009,31 @@ fn parse_method_handles(bytes: &[u8], item: &MapItem) -> DexResult<Vec<MethodHan
     Ok(entries)
 }
 
-fn skip_encoded_annotation(bytes: &[u8], cursor: &mut usize) -> DexResult<()> {
+fn skip_encoded_annotation(bytes: &[u8], cursor: &mut usize, depth: usize) -> DexResult<()> {
     let _ = read_uleb_from(bytes, cursor, "encoded_annotation")?;
     let size = read_uleb_from(bytes, cursor, "encoded_annotation")?;
     for _ in 0..size {
         let _ = read_uleb_from(bytes, cursor, "annotation_element")?;
-        skip_encoded_value(bytes, cursor)?;
+        skip_encoded_value(bytes, cursor, depth)?;
     }
     Ok(())
 }
 
-fn skip_encoded_array(bytes: &[u8], cursor: &mut usize) -> DexResult<()> {
+fn skip_encoded_array(bytes: &[u8], cursor: &mut usize, depth: usize) -> DexResult<()> {
     let size = read_uleb_from(bytes, cursor, "encoded_array")?;
     for _ in 0..size {
-        skip_encoded_value(bytes, cursor)?;
+        skip_encoded_value(bytes, cursor, depth)?;
     }
     Ok(())
 }
 
-fn skip_encoded_value(bytes: &[u8], cursor: &mut usize) -> DexResult<()> {
+fn skip_encoded_value(bytes: &[u8], cursor: &mut usize, depth: usize) -> DexResult<()> {
+    if depth >= MAX_ENCODED_VALUE_DEPTH {
+        return Err(DexError::Malformed {
+            context: "encoded_value",
+            message: "arrays and annotations nested too deeply",
+        });
+    }
     let header = *bytes.get(*cursor).ok_or(DexError::SectionOutOfBounds {
         section: "encoded_value",
         offset: *cursor,
@@ -995,10 +1044,10 @@ fn skip_encoded_value(bytes: &[u8], cursor: &mut usize) -> DexResult<()> {
     let value_arg = (header >> 5) as usize;
     match value_type {
         0x1C => {
-            skip_encoded_array(bytes, cursor)?;
+            skip_encoded_array(bytes, cursor, depth + 1)?;
         }
         0x1D => {
-            skip_encoded_annotation(bytes, cursor)?;
+            skip_encoded_annotation(bytes, cursor, depth + 1)?;
         }
         0x1E | 0x1F => {
             // null or boolean; nothing else to consume.
