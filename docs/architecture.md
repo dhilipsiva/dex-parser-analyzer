@@ -30,7 +30,7 @@ Parsing borrows from the input buffer (`DexFile<'a>`), so nothing is copied unti
 | `semantics.rs` | 67 | Small helpers layered on `DexFile`. |
 | `error.rs` | 84 | `DexError`, the crate's single error type. |
 
-Known gaps (PROGRESS.md "Next Steps" 1-2): the checksum, signature, `file_size` and `endian_tag` are not verified; `debug_info_item` and hidden-API metadata are not decoded. Some malformed inputs still panic instead of returning an error; P2-DEX-01 removes the three known ones and P2-DEX-02 adds fuzzing.
+Known gaps (PROGRESS.md "Next Steps" 1-2): the checksum, signature, `file_size` and `endian_tag` are not verified; `debug_info_item` and hidden-API metadata are not decoded. Malformed input is reported as a `DexError`, never a panic: `dex-core/tests/hostile_input_test.rs` covers the known cases, and the cargo-fuzz targets in `fuzz/` (run weekly by `.github/workflows/fuzz.yml`) look for new ones.
 
 ## dex-analysis
 
