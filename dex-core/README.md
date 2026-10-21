@@ -62,6 +62,8 @@ both primary/secondary references.
 
 * `parse_dex(&[u8]) -> DexFile`: parse and validate a single `.dex` buffer.
 * `DexFile` getters: `strings()`, `classes()`, `class_defs()`, `method()`.
+  `strings()` yields a `DexResult<&str>` per entry, so a malformed entry in an
+  untrusted file is an error rather than a panic.
 * Bytecode decoding: `DexFile::decode_instructions(MethodIdx)` or
   `bytecode::decode_instructions(&DexFile, &CodeItem)` for manual control.
 * Graphs: `graphs::build_method_cfg`, `graphs::build_call_graph`,

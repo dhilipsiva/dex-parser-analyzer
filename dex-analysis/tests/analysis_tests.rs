@@ -105,7 +105,7 @@ fn preview_of_a_multibyte_literal_does_not_panic() {
         report
             .findings
             .iter()
-            .any(|f| f.message.contains("<meta…") || f.message.contains("<met…")),
+            .any(|f| f.message.contains("PARENT_ACTIVITY <met…")),
         "expected the truncated preview of the patched literal"
     );
 }

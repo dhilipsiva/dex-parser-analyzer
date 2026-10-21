@@ -24,5 +24,5 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 - Three crashes on crafted input are now errors. An out-of-range `class_data_off` and an out-of-range `string_data_off` are rejected by `parse_dex` with `SectionOutOfBounds`. A literal whose 64-byte preview cut fell inside a multibyte character no longer panics the analyzer (thanks to @bilieebiliee1-design, whose PR #1 found it).
-- Every leb128 read in the parser is bounds-checked, as is the raw-bytes copy of an undecoded instruction.
+- Every leb128 read in the parser starts at a bounds-checked offset, and a `method_idx` in class data that points past `method_ids` is an `InvalidIndex` error instead of a panic.
 - The GUI page no longer requests a nonexistent `dex-gui.js`.

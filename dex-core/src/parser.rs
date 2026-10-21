@@ -74,6 +74,13 @@ pub fn parse_dex<'a>(bytes: &'a [u8]) -> DexResult<DexFile<'a>> {
             .chain(class_data.virtual_methods.iter())
         {
             let mi = method.method_idx.to_usize();
+            // method_idx comes from a diff-encoded uleb in class_data: check it against method_ids.
+            if mi >= method_owner.len() {
+                return Err(DexError::InvalidIndex {
+                    table: "method_ids",
+                    index: mi as u32,
+                });
+            }
             method_owner[mi] = Some(class_idx);
             method_access[mi] = method.access_flags;
             if method.code_off != 0 {
