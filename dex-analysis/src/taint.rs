@@ -19,6 +19,9 @@ struct MethodPattern {
     name: &'static str,
     signature: &'static str,
     description: &'static str,
+    /// Indexes into the invoke's register list that must be tainted for the sink to fire. For an
+    /// instance method or constructor, index 0 is the receiver, so the first parameter is 1.
+    /// Empty means any tainted argument.
     taint_args: &'static [usize],
 }
 
@@ -88,7 +91,7 @@ const SINKS: &[MethodPattern] = &[
         name: "<init>",
         signature: "(Ljava/lang/String;)V",
         description: "java.net.URL.<init>",
-        taint_args: &[0],
+        taint_args: &[1],
     },
     MethodPattern {
         id: "SNK_WEBVIEW_LOAD_URL",
@@ -96,7 +99,7 @@ const SINKS: &[MethodPattern] = &[
         name: "loadUrl",
         signature: "(Ljava/lang/String;)V",
         description: "WebView.loadUrl",
-        taint_args: &[0],
+        taint_args: &[1],
     },
     MethodPattern {
         id: "SNK_SQLITE_EXEC",
@@ -199,6 +202,8 @@ pub fn run_taint_checks(
                         .map(|arg| arg.index)
                         .collect::<Vec<_>>()
                 ),
+                cwe: None,
+                remediation: None,
                 extra: json!({
                     "sink": incident.sink.description,
                     "pc": incident.pc,

@@ -37,17 +37,18 @@ Known gaps (PROGRESS.md "Next Steps" 1-2): the checksum, signature, `file_size` 
 | Module | Role |
 |---|---|
 | `config.rs` | `AnalysisConfig`: per-pass switches, the secret-entropy threshold and the finding cap. |
-| `engine.rs` | `analyze_dex` and `analyze_dex_bytes`: run the enabled passes, apply `max_findings`, fill `AnalysisStats`. |
+| `engine.rs` | `analyze_dex` and `analyze_dex_bytes`: run the enabled passes, attach each finding's CWE and remediation, sort and de-duplicate, apply `max_findings`, fill `AnalysisStats`. |
 | `pattern.rs`, `structural.rs`, `taint.rs` | The three passes; every rule they emit is in [rules.md](rules.md). |
+| `rules.rs` | The rule catalogue: each finding id's CWE and remediation text, the code-side twin of [rules.md](rules.md). |
 | `data_flow.rs` | A worklist forward data-flow framework over `dexpa-core` CFGs, used by the taint pass. |
-| `model.rs` | `Finding` (id, kind, severity, location, message, JSON `extra`), `Severity`, `VulnerabilityKind`, `AnalysisReport`. |
+| `model.rs` | `Finding` (id, kind, severity, location, message, CWE, remediation, JSON `extra`), `Severity`, `VulnerabilityKind`, `AnalysisReport`. |
 | `ffi.rs` | wasm32 only: `wasm-bindgen` exports for JavaScript hosts. |
 
-The findings are sorted in emission order, not by severity, before `max_findings` truncates them; the rule-catalogue work (P3-DEX-02) changes that.
+The engine sorts the findings by severity, most severe first (a stable sort, so pass order breaks ties), drops exact duplicates, and only then applies `max_findings`, so a cap keeps the most severe findings. `tests/rules_test.rs` holds a positive and a negative test per rule id, run against DEX fixtures compiled from `tests/fixtures-src`.
 
 ## dex-cli
 
-A single `main.rs`: clap arguments (a path and `--max-findings`), then `parse_dex`, `dex_to_overview` and `analyze_dex`, printed as text.
+A single `main.rs`: clap arguments (a `.dex` or APK path, `--format`, `--max-findings`, `--fail-on`), then `read_dex_buffers_from_bytes` for APKs, and `parse_dex`, `dex_to_overview` and `analyze_dex` per DEX file, printed as text or as one JSON document. [dex-cli/README.md](../dex-cli/README.md) documents the JSON schema and the exit codes.
 
 ## dex-gui
 

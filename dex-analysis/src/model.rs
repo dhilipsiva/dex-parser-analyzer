@@ -7,8 +7,8 @@ use dexpa_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-/// Severity associated with a finding.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Severity associated with a finding, ordered from `Info` (least) to `Critical` (most).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Severity {
     Info,
     Low,
@@ -68,6 +68,12 @@ pub struct Finding {
     pub location: Location,
     pub message: String,
     pub extra: Value,
+    /// The CWE the rule maps to, from the rule catalogue (`rules.rs`, docs/rules.md).
+    #[serde(default)]
+    pub cwe: Option<u32>,
+    /// What to change to resolve the finding, from the rule catalogue.
+    #[serde(default)]
+    pub remediation: Option<String>,
 }
 
 /// Aggregate statistics reported alongside findings.

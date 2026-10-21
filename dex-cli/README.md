@@ -38,7 +38,7 @@ So `dexpa app.apk --fail-on high` in CI fails the job on any High or Critical fi
 For each DEX file in the input:
 1. the header summary: version, checksum, file size, and the string, type, field, method and class counts;
 2. the ten classes with the most methods;
-3. the analysis counts and the findings (severity, rule id, location, message).
+3. the analysis counts and the findings, most severe first (severity, rule id, location, message).
 
 ## JSON output (`--format json`)
 
@@ -77,6 +77,8 @@ One document. `schema_version` changes only with a breaking change to the shape 
               "pc": null
             },
             "message": "Literal `...` matched entropy pattern",
+            "cwe": 798,
+            "remediation": "Remove the credential from the app; ...",
             "extra": { "pattern": "entropy", "literal": "..." }
           }
         ],
@@ -89,6 +91,6 @@ One document. `schema_version` changes only with a breaking change to the shape 
 
 - `dex_files` holds one entry for a `.dex` input, and one per `classes*.dex` for an APK, in entry-name order; `index` is the position.
 - `top_classes` lists at most ten classes, most methods first.
-- `report` is the `dexpa-analysis` `AnalysisReport` as its serde types serialise it. The rule ids and their severities are in [docs/rules.md](../docs/rules.md).
+- `report` is the `dexpa-analysis` `AnalysisReport` as its serde types serialise it. Findings are listed most severe first. The rule ids, their severities, CWEs and remediation texts are in [docs/rules.md](../docs/rules.md); `cwe` and `remediation` are `null` for an id outside that catalogue.
 
 Licensed under MIT OR Apache-2.0.

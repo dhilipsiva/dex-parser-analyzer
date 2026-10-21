@@ -14,6 +14,7 @@ pub mod error;
 pub mod ffi;
 pub mod model;
 pub mod pattern;
+pub mod rules;
 pub mod structural;
 pub mod taint;
 

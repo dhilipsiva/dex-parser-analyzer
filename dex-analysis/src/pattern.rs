@@ -53,15 +53,51 @@ static SECRET_KEYWORDS: Lazy<AhoCorasick> = Lazy::new(|| {
     .expect("aho-corasick build")
 });
 
-static WEAK_CRYPTO_KEYWORDS: &[(&str, &str)] = &[
+/// Algorithm names (the first `/`-separated token, lower-cased) that are weak whatever the mode.
+static WEAK_ALGORITHMS: &[(&str, &str)] = &[
+    ("md2", "MD2"),
+    ("md4", "MD4"),
     ("md5", "MD5"),
+    ("sha", "SHA1"),
     ("sha1", "SHA1"),
     ("sha-1", "SHA1"),
     ("des", "DES"),
-    ("rc4", "RC4"),
+    ("desede", "3DES"),
+    ("tripledes", "3DES"),
     ("rc2", "RC2"),
-    ("ecb", "ECB"),
+    ("rc4", "RC4"),
+    ("arcfour", "RC4"),
 ];
+
+/// Symmetric block ciphers, which are weak in ECB mode; a bare name such as `AES` means ECB on
+/// Android.
+static BLOCK_CIPHERS: &[&str] = &["aes", "aes_128", "aes_192", "aes_256", "blowfish"];
+
+/// Algorithm names recognised as acceptable; a call using one of these is not reported.
+static STRONG_ALGORITHMS: &[&str] = &[
+    "chacha20",
+    "chacha20-poly1305",
+    "rsa",
+    "sha-224",
+    "sha-256",
+    "sha-384",
+    "sha-512",
+    "sha224",
+    "sha256",
+    "sha384",
+    "sha512",
+    "sha3-224",
+    "sha3-256",
+    "sha3-384",
+    "sha3-512",
+];
+
+/// What a string literal says about the algorithm a crypto call uses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AlgorithmClass {
+    Weak(&'static str),
+    Strong,
+}
 
 struct MethodPattern {
     id: &'static str,
@@ -144,6 +180,8 @@ fn detect_hardcoded_secrets(
                         preview_literal(value),
                         trigger.label()
                     ),
+                    cwe: None,
+                    remediation: None,
                     extra: json!({
                         "pattern": trigger.label(),
                         "literal": value,
@@ -161,6 +199,8 @@ fn detect_hardcoded_secrets(
                     preview_literal(value),
                     trigger.label()
                 ),
+                cwe: None,
+                remediation: None,
                 extra: json!({
                     "pattern": trigger.label(),
                     "literal": value,
@@ -185,13 +225,15 @@ fn detect_weak_crypto(
                 severity: Severity::Info,
                 location: Location::unknown(),
                 message: "Cipher APIs referenced but no invocations were resolved".to_string(),
+                cwe: None,
+                remediation: None,
                 extra: json!({ "reason": "cipher_descriptor" }),
             });
         }
         return;
     }
     let method_to_strings = invert_string_map(string_to_methods);
-    let weak_strings = classify_weak_strings(dex);
+    let algorithm_strings = classify_algorithm_strings(dex);
     let mut emitted = HashSet::new();
     let mut produced = false;
 
@@ -199,10 +241,22 @@ fn detect_weak_crypto(
         let Some(sink) = sink_lookup.get(callee) else {
             continue;
         };
-        let algorithm = method_to_strings
+        let classes: Vec<AlgorithmClass> = method_to_strings
             .get(caller)
-            .and_then(|strings| strings.iter().find_map(|idx| weak_strings.get(idx)))
-            .copied();
+            .map(|strings| {
+                strings
+                    .iter()
+                    .filter_map(|idx| algorithm_strings.get(idx).copied())
+                    .collect()
+            })
+            .unwrap_or_default();
+        let algorithm = classes.iter().find_map(|class| match class {
+            AlgorithmClass::Weak(label) => Some(*label),
+            AlgorithmClass::Strong => None,
+        });
+        if algorithm.is_none() && classes.contains(&AlgorithmClass::Strong) {
+            continue;
+        }
         let severity = if algorithm.is_some() {
             Severity::High
         } else {
@@ -227,6 +281,8 @@ fn detect_weak_crypto(
             severity,
             location: Location::from_method(dex, MethodIdx::new(*caller), None),
             message,
+            cwe: None,
+            remediation: None,
             extra: json!({
                 "sink": sink.description,
                 "algorithm": algorithm.unwrap_or("unknown"),
@@ -241,6 +297,8 @@ fn detect_weak_crypto(
             severity: Severity::Info,
             location: Location::unknown(),
             message: "Cipher APIs referenced but no invocations were resolved".to_string(),
+            cwe: None,
+            remediation: None,
             extra: json!({ "reason": "cipher_descriptor" }),
         });
     }
@@ -275,6 +333,8 @@ fn detect_insecure_http(
                     severity: Severity::Medium,
                     location: Location::from_method(dex, MethodIdx::new(*method), None),
                     message: message.clone(),
+                    cwe: None,
+                    remediation: None,
                     extra: json!({
                         "literal": value,
                         "kind": "http_literal",
@@ -288,6 +348,8 @@ fn detect_insecure_http(
                 severity: Severity::Medium,
                 location: Location::unknown(),
                 message: message.clone(),
+                cwe: None,
+                remediation: None,
                 extra: json!({
                     "literal": value,
                     "kind": "http_literal",
@@ -333,22 +395,42 @@ fn classify_secret(value: &str, entropy_threshold: f32) -> Option<SecretTrigger>
     None
 }
 
-fn classify_weak_strings(dex: &DexFile<'_>) -> HashMap<u32, &'static str> {
+fn classify_algorithm_strings(dex: &DexFile<'_>) -> HashMap<u32, AlgorithmClass> {
     let mut map = HashMap::new();
     for idx in 0..dex.string_count() {
         let idx_u32 = idx as u32;
         let Some(value) = dex.string(StringIdx::new(idx_u32)) else {
             continue;
         };
-        let lower = value.to_ascii_lowercase();
-        if let Some((_, label)) = WEAK_CRYPTO_KEYWORDS
-            .iter()
-            .find(|(needle, _)| lower.contains(*needle))
-        {
-            map.insert(idx_u32, *label);
+        if let Some(class) = classify_algorithm(value) {
+            map.insert(idx_u32, class);
         }
     }
     map
+}
+
+/// Classify a `Cipher`/`MessageDigest` algorithm or transformation string (`ALG`, `ALG/MODE` or
+/// `ALG/MODE/PADDING`) by its exact tokens, so `description` is not read as DES; `None` for a
+/// string that names no known algorithm.
+fn classify_algorithm(value: &str) -> Option<AlgorithmClass> {
+    let lower = value.to_ascii_lowercase();
+    let tokens: Vec<&str> = lower.split('/').collect();
+    if tokens.len() > 3 {
+        return None;
+    }
+    let algorithm = tokens[0];
+    if let Some((_, label)) = WEAK_ALGORITHMS.iter().find(|(name, _)| *name == algorithm) {
+        return Some(AlgorithmClass::Weak(label));
+    }
+    if BLOCK_CIPHERS.contains(&algorithm) {
+        return Some(match tokens.get(1) {
+            None | Some(&"ecb") => AlgorithmClass::Weak("ECB"),
+            Some(_) => AlgorithmClass::Strong,
+        });
+    }
+    STRONG_ALGORITHMS
+        .contains(&algorithm)
+        .then_some(AlgorithmClass::Strong)
 }
 
 fn build_string_to_methods(xrefs: &graphs::Xrefs) -> HashMap<u32, Vec<u32>> {
@@ -428,6 +510,43 @@ impl SecretTrigger {
             SecretTrigger::Keyword => Severity::Medium,
             SecretTrigger::Entropy(ent) if *ent > 4.5 => Severity::High,
             SecretTrigger::Entropy(_) => Severity::Medium,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AlgorithmClass, classify_algorithm};
+
+    #[test]
+    fn algorithms_are_classified_by_exact_tokens() {
+        for (value, expected) in [
+            ("MD5", Some(AlgorithmClass::Weak("MD5"))),
+            ("SHA-1", Some(AlgorithmClass::Weak("SHA1"))),
+            ("SHA", Some(AlgorithmClass::Weak("SHA1"))),
+            ("DES/ECB/PKCS5Padding", Some(AlgorithmClass::Weak("DES"))),
+            (
+                "DESede/CBC/PKCS5Padding",
+                Some(AlgorithmClass::Weak("3DES")),
+            ),
+            ("RC4", Some(AlgorithmClass::Weak("RC4"))),
+            ("AES/ECB/PKCS5Padding", Some(AlgorithmClass::Weak("ECB"))),
+            ("AES", Some(AlgorithmClass::Weak("ECB"))),
+            ("AES/GCM/NoPadding", Some(AlgorithmClass::Strong)),
+            ("AES_256/GCM/NoPadding", Some(AlgorithmClass::Strong)),
+            (
+                "RSA/ECB/OAEPWithSHA-256AndMGF1Padding",
+                Some(AlgorithmClass::Strong),
+            ),
+            ("SHA-256", Some(AlgorithmClass::Strong)),
+            ("SHA-512/256", Some(AlgorithmClass::Strong)),
+            ("ChaCha20-Poly1305", Some(AlgorithmClass::Strong)),
+            ("description", None),
+            ("Settings", None),
+            ("https://example.com/ecb", None),
+            ("des des", None),
+        ] {
+            assert_eq!(classify_algorithm(value), expected, "{value}");
         }
     }
 }

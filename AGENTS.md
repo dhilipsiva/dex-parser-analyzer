@@ -19,6 +19,7 @@ Work inside the dev shell, which pins the toolchain from `rust-toolchain.toml`:
 | `just clippy-wasm` | clippy for `dex-gui` on `wasm32-unknown-unknown` |
 | `just test` | `cargo test --workspace` |
 | `just doc` | rustdoc with `-D warnings` |
+| `just fixtures` | inside `nix develop .#fixtures` (JDK 21 and a pinned R8): recompile `dex-analysis/tests/fixtures-src` into `dex-analysis/tests/data/rules-{positive,negative}.dex` |
 | `just deny` | `cargo deny check advisories bans licenses sources` (policy in `deny.toml`) |
 | `cargo run -p dexpa-cli -- <file.dex or .apk>` | run the `dexpa` CLI |
 | `cd dex-gui && trunk serve` | run the GUI locally |
@@ -28,7 +29,7 @@ CI (`.github/workflows/ci.yml`) runs the same checks.
 ## Rules
 
 - Parsing code must return a `DexError`, never panic, on malformed input: the GUI parses untrusted uploads.
-- A new rule needs a positive and a negative fixture test, plus its row in `docs/rules.md`.
+- A new rule needs a Java class in both `dex-analysis/tests/fixtures-src/positive` and `.../negative`, a line in the `rule_tests!` list in `dex-analysis/tests/rules_test.rs`, an entry in `dex-analysis/src/rules.rs`, and its row and remediation line in `docs/rules.md`; `docs_catalogue_and_tests_agree` fails until all four agree.
 - Keep `CHANGELOG.md`'s `[Unreleased]` section current with every user-visible change.
 - Never commit `dex-gui/dist/` or other build output; it is gitignored.
 - Keep commit subjects short and imperative, as the history already does.

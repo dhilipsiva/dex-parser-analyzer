@@ -1,6 +1,8 @@
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
 
+use std::{cmp::Reverse, collections::HashSet};
+
 use dexpa_core::format::MethodIdx;
 use dexpa_core::model::DexFile;
 
@@ -8,7 +10,7 @@ use crate::{
     config::AnalysisConfig,
     error::AnalysisError,
     model::{AnalysisReport, AnalysisStats},
-    pattern, structural, taint,
+    pattern, rules, structural, taint,
 };
 
 /// Run the enabled analyses on an already parsed [`DexFile`].
@@ -33,6 +35,26 @@ pub fn analyze_dex<'a>(dex: &DexFile<'a>, config: &AnalysisConfig) -> AnalysisRe
         taint::run_taint_checks(dex, config, &mut findings, &mut stats);
     }
 
+    for finding in &mut findings {
+        if let Some(rule) = rules::lookup(&finding.id) {
+            finding.cwe = Some(rule.cwe);
+            finding.remediation = Some(rule.remediation.to_string());
+        }
+    }
+    // Most severe first (stable within a severity), so a cap keeps what matters; then drop exact
+    // repeats of a finding at the same location.
+    findings.sort_by_key(|finding| Reverse(finding.severity));
+    let mut seen = HashSet::new();
+    findings.retain(|f| {
+        seen.insert((
+            f.id.clone(),
+            f.location.class_descriptor.clone(),
+            f.location.method_name.clone(),
+            f.location.method_signature.clone(),
+            f.location.pc,
+            f.message.clone(),
+        ))
+    });
     if let Some(max) = config.max_findings
         && findings.len() > max
     {

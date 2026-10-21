@@ -38,10 +38,14 @@ pub fn run_structural_checks(
                     summary.signature.as_str(),
                 ) {
                     ("Landroid/webkit/WebSettings;", "setJavaScriptEnabled", "(Z)V") => {
-                        web.javascript_enabled_pc.get_or_insert(inst.pc);
+                        if !literals.is_false_argument(inst) {
+                            web.javascript_enabled_pc.get_or_insert(inst.pc);
+                        }
                     }
                     ("Landroid/webkit/WebSettings;", "setAllowFileAccess", "(Z)V") => {
-                        web.file_access_pc.get_or_insert(inst.pc);
+                        if !literals.is_false_argument(inst) {
+                            web.file_access_pc.get_or_insert(inst.pc);
+                        }
                     }
                     (
                         "Landroid/webkit/WebView;",
@@ -68,6 +72,8 @@ pub fn run_structural_checks(
                                 location: Location::from_method(dex, method_idx, Some(inst.pc)),
                                 message: "openFileOutput with MODE_WORLD_* flag detected"
                                     .to_string(),
+                                cwe: None,
+                                remediation: None,
                                 extra: json!({
                                     "mode_literal": literals.literal(*mode_reg),
                                 }),
@@ -81,6 +87,8 @@ pub fn run_structural_checks(
                             severity: Severity::High,
                             location: Location::from_method(dex, method_idx, Some(inst.pc)),
                             message: "Runtime.exec invocation detected".to_string(),
+                            cwe: None,
+                            remediation: None,
                             extra: json!({ "signature": summary.signature }),
                         });
                     }
@@ -91,6 +99,8 @@ pub fn run_structural_checks(
                             severity: Severity::High,
                             location: Location::from_method(dex, method_idx, Some(inst.pc)),
                             message: "ProcessBuilder constructor detected".to_string(),
+                            cwe: None,
+                            remediation: None,
                             extra: json!({ "signature": summary.signature }),
                         });
                     }
@@ -119,6 +129,8 @@ pub fn run_structural_checks(
                 ),
                 message: "WebView enables JavaScript and attaches addJavascriptInterface"
                     .to_string(),
+                cwe: None,
+                remediation: None,
                 extra: json!({
                     "javascript_enabled_pc": web.javascript_enabled_pc,
                     "javascript_interface_pc": web.javascript_interface_pc,
@@ -135,6 +147,8 @@ pub fn run_structural_checks(
                     web.file_access_pc.or(web.javascript_enabled_pc),
                 ),
                 message: "WebSettings enables JavaScript and allows file access".to_string(),
+                cwe: None,
+                remediation: None,
                 extra: json!({
                     "javascript_enabled_pc": web.javascript_enabled_pc,
                     "file_access_pc": web.file_access_pc,
@@ -148,6 +162,8 @@ pub fn run_structural_checks(
                 location: Location::from_method(dex, method_idx, None),
                 message: "Method overrides onReceivedSslError and calls handler.proceed()"
                     .to_string(),
+                cwe: None,
+                remediation: None,
                 extra: json!({
                     "method": method_summary.name,
                 }),
@@ -196,6 +212,14 @@ impl LiteralTracker {
 
     fn literal(&self, reg: u16) -> Option<i64> {
         self.values.get(&reg).copied()
+    }
+
+    /// Whether the boolean parameter of an instance call (register 1, after the receiver) is a
+    /// known literal `false`. An unknown value counts as possibly true.
+    fn is_false_argument(&self, inst: &dexpa_core::bytecode::Instruction) -> bool {
+        inst.registers
+            .get(1)
+            .is_some_and(|reg| self.literal(*reg) == Some(0))
     }
 
     fn is_world_mode(&self, reg: u16) -> bool {

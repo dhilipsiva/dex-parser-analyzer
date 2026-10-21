@@ -8,7 +8,9 @@ Static-analysis passes over a DEX file parsed by [`dexpa-core`](../dex-core/). I
 - **structural** (`structural.rs`): WebView misconfiguration (JavaScript plus a JavaScript interface or file access), SSL-error handlers that call `proceed()`, world-readable/writable file modes, and `Runtime.exec`/`ProcessBuilder` use.
 - **taint** (`taint.rs`): an intraprocedural forward data-flow pass (`data_flow.rs`) that tracks values from Android sources (Intent extras, SharedPreferences, device identifiers, Bundle strings) into sinks (logging, `URL`, `WebView.loadUrl`, SQLite, `Runtime.exec`) within one method.
 
-Every rule id, with its severity, its OWASP and CWE mapping and its known false positives, is in [docs/rules.md](../docs/rules.md).
+Every rule id, with its severity, its OWASP and CWE mapping, its remediation and its known false positives, is in [docs/rules.md](../docs/rules.md); `rules::RULES` is the same catalogue in code. Each finding carries its rule's `cwe` and `remediation`, and the report lists findings most severe first, de-duplicated, before `max_findings` cuts it.
+
+Each rule has a positive and a negative test (`tests/rules_test.rs`) against DEX fixtures compiled from the Java sources in [`tests/fixtures-src`](tests/fixtures-src/README.md).
 
 ```rust
 use dexpa_analysis::{config::AnalysisConfig, engine::analyze_dex};

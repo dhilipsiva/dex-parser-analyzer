@@ -46,3 +46,23 @@ fuzz target="parse_dex" seconds="60":
     mkdir -p fuzz/corpus/{{target}}
     find dex-core/tests/data -maxdepth 1 -type f -size -64k -exec cp {} fuzz/corpus/{{target}}/ \;
     cd fuzz && cargo fuzz run {{target}} corpus/{{target}} -- -max_total_time={{seconds}} -max_len=65536
+
+# Rebuild dex-analysis/tests/data/rules-{positive,negative}.dex from the Java sources in
+# dex-analysis/tests/fixtures-src (inside `nix develop .#fixtures`). The Android stubs are on the
+# classpath only, so the fixtures reference the framework classes without containing them.
+fixtures:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    src=dex-analysis/tests/fixtures-src
+    out=$(mktemp -d)
+    javac --release 17 -d "$out/stubs" $(find "$src/stubs" -name '*.java' | sort)
+    for kind in positive negative; do
+        javac --release 17 -cp "$out/stubs" -d "$out/$kind" $(find "$src/$kind" -name '*.java' | sort)
+        mkdir -p "$out/$kind-dex"
+        java -cp "$R8_JAR" com.android.tools.r8.D8 --release --min-api 26 \
+            --lib "$JAVA_HOME" --classpath "$out/stubs" --output "$out/$kind-dex" \
+            $(find "$out/$kind" -name '*.class' | sort)
+        cp "$out/$kind-dex/classes.dex" "dex-analysis/tests/data/rules-$kind.dex"
+    done
+    echo "fixtures written to dex-analysis/tests/data (scratch: $out)"
+
