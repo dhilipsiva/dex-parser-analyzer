@@ -396,12 +396,14 @@ fn preview_literal(value: &str) -> String {
     if trimmed.len() <= MAX_LEN {
         trimmed.to_string()
     } else {
-        format!("{}…", &trimmed[..MAX_LEN])
+        // Cut on a character boundary: a multibyte character may straddle byte 64.
+        format!("{}…", &trimmed[..trimmed.floor_char_boundary(MAX_LEN)])
     }
 }
 
 fn references_cipher_descriptor(dex: &DexFile<'_>) -> bool {
     dex.strings()
+        .flatten()
         .any(|value| value.contains("javax/crypto/Cipher"))
 }
 

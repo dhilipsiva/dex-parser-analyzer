@@ -245,6 +245,14 @@ fn parse_string_ids(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[StringId
     let mut out = Vec::with_capacity(count);
     for chunk in section.as_chunks::<4>().0 {
         let off = u32::from_le_bytes(*chunk);
+        // Strings decode lazily, but an offset past the end can never be valid: reject it here.
+        if off as usize >= bytes.len() {
+            return Err(DexError::SectionOutOfBounds {
+                section: "string_data_item",
+                offset: off as usize,
+                size: 1,
+            });
+        }
         out.push(StringId {
             string_data_off: off,
         });
@@ -352,15 +360,28 @@ fn parse_class_defs(bytes: &[u8], header: &DexHeader) -> DexResult<Box<[ClassDef
     Ok(out.into_boxed_slice())
 }
 
+/// The bytes from `offset` to the end of the buffer, or an error when a crafted offset points past it.
+fn tail<'b>(bytes: &'b [u8], offset: usize, section: &'static str) -> DexResult<&'b [u8]> {
+    bytes.get(offset..).ok_or(DexError::SectionOutOfBounds {
+        section,
+        offset,
+        size: 1,
+    })
+}
+
 fn parse_class_data(bytes: &[u8], offset: u32) -> DexResult<ClassDataItem> {
     let mut cursor = offset as usize;
-    let (static_fields_size, used) = read_uleb128(&bytes[cursor..], "class_data")?;
+    let (static_fields_size, used) =
+        read_uleb128(tail(bytes, cursor, "class_data")?, "class_data")?;
     cursor += used;
-    let (instance_fields_size, used) = read_uleb128(&bytes[cursor..], "class_data")?;
+    let (instance_fields_size, used) =
+        read_uleb128(tail(bytes, cursor, "class_data")?, "class_data")?;
     cursor += used;
-    let (direct_methods_size, used) = read_uleb128(&bytes[cursor..], "class_data")?;
+    let (direct_methods_size, used) =
+        read_uleb128(tail(bytes, cursor, "class_data")?, "class_data")?;
     cursor += used;
-    let (virtual_methods_size, used) = read_uleb128(&bytes[cursor..], "class_data")?;
+    let (virtual_methods_size, used) =
+        read_uleb128(tail(bytes, cursor, "class_data")?, "class_data")?;
     cursor += used;
 
     let mut static_fields = parse_encoded_fields(bytes, &mut cursor, static_fields_size)?;
@@ -389,9 +410,11 @@ fn parse_encoded_fields(
     let mut out = Vec::with_capacity(count as usize);
     let mut running = 0u32;
     for _ in 0..count {
-        let (field_idx_diff, used) = read_uleb128(&bytes[*cursor..], "encoded_field")?;
+        let (field_idx_diff, used) =
+            read_uleb128(tail(bytes, *cursor, "encoded_field")?, "encoded_field")?;
         *cursor += used;
-        let (access_flags, used) = read_uleb128(&bytes[*cursor..], "encoded_field")?;
+        let (access_flags, used) =
+            read_uleb128(tail(bytes, *cursor, "encoded_field")?, "encoded_field")?;
         *cursor += used;
         running = running
             .checked_add(field_idx_diff)
@@ -415,11 +438,14 @@ fn parse_encoded_methods(
     let mut out = Vec::with_capacity(count as usize);
     let mut running = 0u32;
     for _ in 0..count {
-        let (method_idx_diff, used) = read_uleb128(&bytes[*cursor..], "encoded_method")?;
+        let (method_idx_diff, used) =
+            read_uleb128(tail(bytes, *cursor, "encoded_method")?, "encoded_method")?;
         *cursor += used;
-        let (access_flags, used) = read_uleb128(&bytes[*cursor..], "encoded_method")?;
+        let (access_flags, used) =
+            read_uleb128(tail(bytes, *cursor, "encoded_method")?, "encoded_method")?;
         *cursor += used;
-        let (code_off, used) = read_uleb128(&bytes[*cursor..], "encoded_method")?;
+        let (code_off, used) =
+            read_uleb128(tail(bytes, *cursor, "encoded_method")?, "encoded_method")?;
         *cursor += used;
         running = running
             .checked_add(method_idx_diff)
@@ -481,7 +507,10 @@ fn parse_code_item<'a>(bytes: &'a [u8], offset: u32) -> DexResult<CodeItem<'a>> 
     let mut handlers = Vec::new();
     let mut handler_offsets = Vec::new();
     if tries_size > 0 {
-        let (handler_count, used) = read_uleb128(&bytes[cursor..], "encoded_catch_handler_list")?;
+        let (handler_count, used) = read_uleb128(
+            tail(bytes, cursor, "encoded_catch_handler_list")?,
+            "encoded_catch_handler_list",
+        )?;
         cursor += used;
         let handlers_base = cursor;
         for _ in 0..handler_count {
@@ -506,7 +535,10 @@ fn parse_code_item<'a>(bytes: &'a [u8], offset: u32) -> DexResult<CodeItem<'a>> 
 }
 
 fn parse_catch_handler(bytes: &[u8], cursor: &mut usize) -> DexResult<EncodedCatchHandler> {
-    let (size_raw, used) = read_sleb128(&bytes[*cursor..], "encoded_catch_handler")?;
+    let (size_raw, used) = read_sleb128(
+        tail(bytes, *cursor, "encoded_catch_handler")?,
+        "encoded_catch_handler",
+    )?;
     *cursor += used;
     let has_catch_all = size_raw <= 0;
     let handler_count = if has_catch_all {
@@ -517,9 +549,15 @@ fn parse_catch_handler(bytes: &[u8], cursor: &mut usize) -> DexResult<EncodedCat
 
     let mut handlers = Vec::with_capacity(handler_count as usize);
     for _ in 0..handler_count {
-        let (type_idx, used) = read_uleb128(&bytes[*cursor..], "encoded_type_addr_pair")?;
+        let (type_idx, used) = read_uleb128(
+            tail(bytes, *cursor, "encoded_type_addr_pair")?,
+            "encoded_type_addr_pair",
+        )?;
         *cursor += used;
-        let (addr, used) = read_uleb128(&bytes[*cursor..], "encoded_type_addr_pair")?;
+        let (addr, used) = read_uleb128(
+            tail(bytes, *cursor, "encoded_type_addr_pair")?,
+            "encoded_type_addr_pair",
+        )?;
         *cursor += used;
         handlers.push(CatchHandler {
             type_idx: TypeIdx::new(type_idx),
@@ -528,7 +566,10 @@ fn parse_catch_handler(bytes: &[u8], cursor: &mut usize) -> DexResult<EncodedCat
     }
 
     let catch_all_addr = if has_catch_all {
-        let (addr, used) = read_uleb128(&bytes[*cursor..], "encoded_catch_handler")?;
+        let (addr, used) = read_uleb128(
+            tail(bytes, *cursor, "encoded_catch_handler")?,
+            "encoded_catch_handler",
+        )?;
         *cursor += used;
         Some(addr)
     } else {
@@ -583,7 +624,7 @@ fn read_uleb_from(bytes: &[u8], cursor: &mut usize, context: &'static str) -> De
             size: 1,
         });
     }
-    let (value, used) = read_uleb128(&bytes[*cursor..], context)?;
+    let (value, used) = read_uleb128(tail(bytes, *cursor, context)?, context)?;
     *cursor += used;
     Ok(value)
 }

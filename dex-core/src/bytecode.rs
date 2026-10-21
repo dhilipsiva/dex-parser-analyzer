@@ -374,7 +374,15 @@ fn decode_format(
             inst.literal = Some(read_i64(bytes, start + 2)?);
         }
         _ => {
-            inst.raw = Some(bytes[start..start + inst.format.bytes().unwrap_or(2)].to_vec());
+            let len = inst.format.bytes().unwrap_or(2);
+            let raw = bytes
+                .get(start..start + len)
+                .ok_or(DexError::SectionOutOfBounds {
+                    section: "instruction",
+                    offset: start,
+                    size: len,
+                })?;
+            inst.raw = Some(raw.to_vec());
         }
     }
     Ok(())

@@ -184,8 +184,9 @@ impl<'a> DexFile<'a> {
 
     /// Returns all strings as an iterator.
     ///
-    /// The iterator lazily decodes each entry and therefore doubles as a
-    /// low-cost validation pass that ensures all strings can be materialized.
+    /// The iterator lazily decodes each entry and yields `Err` for an entry that
+    /// cannot be materialized (for example a crafted out-of-range offset), so it
+    /// doubles as a low-cost validation pass that never panics.
     pub fn strings(&'a self) -> Strings<'a> {
         Strings {
             dex: self,
@@ -422,7 +423,8 @@ pub struct Strings<'a> {
 }
 
 impl<'a> Iterator for Strings<'a> {
-    type Item = &'a str;
+    /// Each entry, or the error a malformed `string_data_item` produced; iteration never panics.
+    type Item = DexResult<&'a str>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.dex.string_ids.len() {
@@ -430,11 +432,7 @@ impl<'a> Iterator for Strings<'a> {
         }
         let idx = StringIdx::new(self.index as u32);
         self.index += 1;
-        Some(
-            self.dex
-                .try_string(idx)
-                .unwrap_or_else(|err| panic!("invalid string entry: {err}")),
-        )
+        Some(self.dex.try_string(idx))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

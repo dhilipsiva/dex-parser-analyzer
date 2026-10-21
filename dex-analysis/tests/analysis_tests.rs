@@ -85,3 +85,27 @@ fn analyze_bytes_roundtrips_via_json() {
         serde_json::from_str(&json).expect("report should deserialize");
     assert_eq!(report.findings.len(), round_trip.findings.len());
 }
+
+#[test]
+fn preview_of_a_multibyte_literal_does_not_panic() {
+    // A two-byte character straddling the 64-byte preview cut of a literal the secret check reports.
+    let mut bytes = load_fixture("Annotation_classes.dex");
+    let needle = b"(Did you forget to add the android.support.PARENT_ACTIVITY <meta";
+    let at = bytes
+        .windows(needle.len())
+        .position(|w| w == needle)
+        .expect("literal present in the fixture");
+    bytes[at + 63..at + 65].copy_from_slice("é".as_bytes());
+    let config = AnalysisConfig {
+        max_findings: None,
+        ..Default::default()
+    };
+    let report = analyze_dex_bytes(&bytes, &config).expect("analysis succeeded");
+    assert!(
+        report
+            .findings
+            .iter()
+            .any(|f| f.message.contains("<meta…") || f.message.contains("<met…")),
+        "expected the truncated preview of the patched literal"
+    );
+}
