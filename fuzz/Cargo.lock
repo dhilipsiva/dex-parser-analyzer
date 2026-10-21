@@ -66,11 +66,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "dex-analysis"
+name = "dex-fuzz"
+version = "0.0.0"
+dependencies = [
+ "dexpa-analysis",
+ "dexpa-core",
+ "libfuzzer-sys",
+]
+
+[[package]]
+name = "dexpa-analysis"
 version = "0.1.0"
 dependencies = [
  "aho-corasick",
- "dex-core",
+ "dexpa-core",
  "once_cell",
  "petgraph",
  "regex",
@@ -82,7 +91,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dex-core"
+name = "dexpa-core"
 version = "0.1.0"
 dependencies = [
  "bitflags",
@@ -93,15 +102,6 @@ dependencies = [
  "smallvec",
  "thiserror",
  "zip",
-]
-
-[[package]]
-name = "dex-fuzz"
-version = "0.0.0"
-dependencies = [
- "dex-analysis",
- "dex-core",
- "libfuzzer-sys",
 ]
 
 [[package]]
