@@ -17,6 +17,15 @@ use crate::{
 
 const SECRET_MIN_LENGTH: usize = 8;
 
+/// The shortest literal the entropy trigger considers; shorter strings cannot reach a useful
+/// entropy (20 distinct characters give at most log2(20) = 4.3 bits).
+const ENTROPY_MIN_LENGTH: usize = 20;
+
+/// Identifiers (`TaskStackBuilderApi16Impl`, `Base_V7_Theme_AppCompat`) are runs of same-case
+/// letters; in random base64 fewer than one adjacent pair in six is two lower-case letters. A
+/// literal whose share of same-case letter pairs reaches this is treated as words, not a token.
+const ENTROPY_MAX_WORD_PAIRS: f32 = 0.4;
+
 static SECRET_REGEXES: Lazy<Vec<(&str, Regex)>> = Lazy::new(|| {
     vec![
         ("aws_access_key", Regex::new(r"AKIA[0-9A-Z]{16}").unwrap()),
@@ -386,13 +395,46 @@ fn classify_secret(value: &str, entropy_threshold: f32) -> Option<SecretTrigger>
     if SECRET_KEYWORDS.find(value.as_bytes()).is_some() {
         return Some(SecretTrigger::Keyword);
     }
-    if value.len() >= SECRET_MIN_LENGTH {
+    if is_token_shaped(value) {
         let entropy = shannon_entropy(value);
         if entropy >= entropy_threshold {
             return Some(SecretTrigger::Entropy(entropy));
         }
     }
     None
+}
+
+/// Whether a literal looks like a generated token (an API key, a base64 or hex secret) rather
+/// than text: long enough, only base64/base64url/hex characters with optional `=` padding, both
+/// letters and digits, not made of words, and not a cipher or digest name. URLs, SQL, file names,
+/// descriptors and identifiers fail one of these tests.
+fn is_token_shaped(value: &str) -> bool {
+    if value.len() < ENTROPY_MIN_LENGTH {
+        return false;
+    }
+    let body = value.trim_end_matches('=');
+    if value.len() - body.len() > 2
+        || !body
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'/' | b'_' | b'-'))
+    {
+        return false;
+    }
+    if !body.bytes().any(|b| b.is_ascii_digit()) || !body.bytes().any(|b| b.is_ascii_alphabetic()) {
+        return false;
+    }
+    word_pair_share(body) < ENTROPY_MAX_WORD_PAIRS && classify_algorithm(body).is_none()
+}
+
+/// The larger of the shares of adjacent lower-lower and upper-upper letter pairs.
+fn word_pair_share(value: &str) -> f32 {
+    let bytes = value.as_bytes();
+    let (mut lower, mut upper) = (0usize, 0usize);
+    for pair in bytes.windows(2) {
+        lower += usize::from(pair[0].is_ascii_lowercase() && pair[1].is_ascii_lowercase());
+        upper += usize::from(pair[0].is_ascii_uppercase() && pair[1].is_ascii_uppercase());
+    }
+    lower.max(upper) as f32 / (bytes.len().saturating_sub(1).max(1)) as f32
 }
 
 fn classify_algorithm_strings(dex: &DexFile<'_>) -> HashMap<u32, AlgorithmClass> {
@@ -516,7 +558,38 @@ impl SecretTrigger {
 
 #[cfg(test)]
 mod tests {
-    use super::{AlgorithmClass, classify_algorithm};
+    use super::{AlgorithmClass, SecretTrigger, classify_algorithm, classify_secret};
+
+    #[test]
+    fn entropy_reports_tokens_not_text() {
+        for token in [
+            "t8rNQwaGaAoYFlByH6RRPkidNPdcJWUV",
+            "dGhpcyBpcyBub3QgYSByZWFsIGtleQ1=",
+            "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        ] {
+            assert!(
+                matches!(classify_secret(token, 3.5), Some(SecretTrigger::Entropy(_))),
+                "{token}"
+            );
+        }
+        for text in [
+            "AES/GCM/NoPadding",
+            "DES/ECB/PKCS5Padding",
+            "CREATE TABLE notes (id INTEGER)",
+            "SELECT COUNT(*) FROM notes",
+            "https://example.com/",
+            "InsecureFileMode.java",
+            "TaskStackBuilderApi16Impl",
+            "SlidingPanelLayoutImplJBMR1",
+            "Base_V7_Theme_AppCompat_Dialog",
+            "ACTION_MEDIA_BUTTON_V2_COMPAT",
+            "Landroid/support/v4/util/ArrayMap;",
+            "abcdefghijklmnopqrstuvwxyz0123",
+            "t8rNQwaGaAoYFlByH6RRPkidNPdcJ===",
+        ] {
+            assert!(classify_secret(text, 3.5).is_none(), "{text}");
+        }
+    }
 
     #[test]
     fn algorithms_are_classified_by_exact_tokens() {

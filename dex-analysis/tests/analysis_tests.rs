@@ -89,12 +89,15 @@ fn analyze_bytes_roundtrips_via_json() {
 #[test]
 fn preview_of_a_multibyte_literal_does_not_panic() {
     // A two-byte character straddling the 64-byte preview cut of a literal the secret check reports.
+    // The literal is prose, so it is turned into a `password=` assignment (same length) to be
+    // reported by the pattern trigger rather than relying on the entropy one.
     let mut bytes = load_fixture("Annotation_classes.dex");
     let needle = b"(Did you forget to add the android.support.PARENT_ACTIVITY <meta";
     let at = bytes
         .windows(needle.len())
         .position(|w| w == needle)
         .expect("literal present in the fixture");
+    bytes[at..at + 9].copy_from_slice(b"password=");
     bytes[at + 63..at + 65].copy_from_slice("é".as_bytes());
     let config = AnalysisConfig {
         max_findings: None,

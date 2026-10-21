@@ -9,7 +9,8 @@ pub struct AnalysisConfig {
     pub enable_structural_checks: bool,
     /// Enable forward data-flow taint analysis.
     pub enable_taint_checks: bool,
-    /// Minimum Shannon entropy a literal must exceed to be considered a secret.
+    /// Minimum Shannon entropy (bits per character) for the entropy secret trigger, which only
+    /// considers token-shaped literals; see docs/rules.md, `M1_HARDCODED_SECRET`.
     pub secret_min_entropy: f32,
     /// Optional upper bound on reported findings.
     pub max_findings: Option<usize>,

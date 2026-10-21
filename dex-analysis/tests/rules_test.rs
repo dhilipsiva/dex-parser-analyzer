@@ -87,6 +87,27 @@ rule_tests! {
 }
 
 #[test]
+fn entropy_alone_reports_a_random_token() {
+    let found = findings_in("positive", "EntropySecret", "M1_HARDCODED_SECRET");
+    assert!(
+        found.iter().any(|f| f.extra["pattern"] == "entropy"),
+        "the random token was not reported: {found:?}"
+    );
+}
+
+/// The negative fixture is full of names, descriptors, SQL, URLs and transformation strings; none
+/// of them is a secret, wherever it sits.
+#[test]
+fn no_secret_is_reported_anywhere_in_the_negative_fixture() {
+    let found: Vec<_> = report("negative")
+        .findings
+        .iter()
+        .filter(|f| f.id == "M1_HARDCODED_SECRET")
+        .collect();
+    assert!(found.is_empty(), "{found:?}");
+}
+
+#[test]
 fn weak_algorithms_are_reported_high() {
     for (class, rule) in [("WeakCipher", "M10_CIPHER"), ("WeakDigest", "M10_DIGEST")] {
         let found = findings_in("positive", class, rule);

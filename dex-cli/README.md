@@ -19,7 +19,7 @@ Options:
 Install from the workspace with `cargo install --path dex-cli`, or run it in place:
 
 ```bash
-cargo run -p dexpa-cli -- dex-core/tests/data/classes.dex --max-findings 25
+cargo run -p dexpa-cli -- dex-analysis/tests/data/rules-positive.dex --max-findings 25
 cargo run -p dexpa-cli -- app.apk --format json --fail-on high
 ```
 

@@ -29,6 +29,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - The committed GUI build (`dex-gui/dist`) and two fixtures that were 14-byte "404: Not Found" pages rather than DEX files.
 
 ### Fixed
+- `M1_HARDCODED_SECRET` no longer reports ordinary text on entropy alone: the entropy trigger only considers token-shaped literals (20+ base64, base64url or hex characters with letters and digits, not made of words, not an algorithm name), so SQL, URLs, messages, identifiers, file names and transformation strings no longer match. On the bundled sample `Annotation_classes.dex` the secret findings drop from 587 to 1 (the remaining one is a `password=` pattern), and on `classes.dex` from 145 to 0; none of the dropped literals was a token.
 - `SNK_URL_CONSTRUCTOR` and `SNK_WEBVIEW_LOAD_URL` never fired: they checked the receiver register instead of the URL argument.
 - `M10_CIPHER` and `M10_DIGEST` compare whole algorithm tokens instead of substrings, so a string such as `"description"` no longer marks a call as DES and `RSA/ECB/...` is not reported as ECB. Calls using a recognised strong algorithm (AES in a mode other than ECB, ChaCha20, RSA, SHA-2, SHA-3) are no longer reported at Low. A bare `"AES"`, which means ECB on Android, is reported High.
 - `M7_WEBVIEW_JS_INTERFACE` and `M7_WEBVIEW_FILE_ACCESS` no longer count `setJavaScriptEnabled(false)` or `setAllowFileAccess(false)` as enabling.

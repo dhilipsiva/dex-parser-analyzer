@@ -16,6 +16,14 @@ fn fixture(name: &str) -> String {
     )
 }
 
+/// The dex-analysis rule fixture: one class per rule that must fire, so findings are known.
+fn rules_fixture() -> String {
+    format!(
+        "{}/../dex-analysis/tests/data/rules-positive.dex",
+        env!("CARGO_MANIFEST_DIR")
+    )
+}
+
 fn stdout(output: &Output) -> String {
     String::from_utf8(output.stdout.clone()).expect("utf-8 stdout")
 }
@@ -42,35 +50,45 @@ fn version_names_the_binary() {
 
 #[test]
 fn text_report_has_the_summary_and_findings() {
-    let output = dexpa(&[&fixture("classes.dex"), "--max-findings", "3"]);
+    let output = dexpa(&[&fixture("classes.dex")]);
     assert_eq!(output.status.code(), Some(0));
     let text = stdout(&output);
     assert!(text.contains("Dex summary for"));
     assert!(text.contains("Classes:        340"));
+
+    let output = dexpa(&[&rules_fixture(), "--max-findings", "3"]);
+    assert_eq!(output.status.code(), Some(0));
+    let text = stdout(&output);
     assert!(text.contains("Analysis findings (3 total):"));
+    assert!(text.contains("1. [Critical] M7_WEBVIEW_JS_INTERFACE"));
 }
 
 #[test]
 fn json_report_has_the_documented_shape() {
-    let output = dexpa(&[
-        &fixture("classes.dex"),
-        "--format",
-        "json",
-        "--max-findings",
-        "3",
-    ]);
+    let output = dexpa(&[&rules_fixture(), "--format", "json", "--max-findings", "3"]);
     assert_eq!(output.status.code(), Some(0));
     let json: serde_json::Value = serde_json::from_str(&stdout(&output)).expect("valid JSON");
     assert_eq!(json["schema_version"], 1);
     let dex = &json["dex_files"][0];
     assert_eq!(dex["index"], 0);
-    assert_eq!(dex["summary"]["class_count"], 340);
+    assert_eq!(dex["summary"]["class_count"], 18);
     assert!(dex["top_classes"].as_array().unwrap().len() <= 10);
     let findings = dex["report"]["findings"].as_array().unwrap();
     assert_eq!(findings.len(), 3);
-    for key in ["id", "severity", "location", "message"] {
+    for key in [
+        "id",
+        "kind",
+        "severity",
+        "location",
+        "message",
+        "cwe",
+        "remediation",
+        "extra",
+    ] {
         assert!(findings[0].get(key).is_some(), "a finding lacks {key}");
     }
+    assert_eq!(findings[0]["severity"], "Critical", "most severe first");
+    assert_eq!(findings[0]["cwe"], 749);
 }
 
 #[test]
@@ -85,8 +103,8 @@ fn apk_input_reports_every_dex() {
 
 #[test]
 fn fail_on_exits_2_when_a_finding_meets_the_threshold() {
-    // classes.dex reports Medium hardcoded-secret findings.
-    let output = dexpa(&[&fixture("classes.dex"), "--fail-on", "medium"]);
+    // The rule fixture has a Critical WebView finding.
+    let output = dexpa(&[&rules_fixture(), "--fail-on", "critical"]);
     assert_eq!(output.status.code(), Some(2));
 }
 
